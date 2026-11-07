@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moon Stats</title>
+<link rel="icon" href="icon.png">
+<style>
+:root{
+  --bg:#0f1115;--panel:#171a21;--panel2:#1e222b;--line:#2a2f3a;--text:#e6e8ec;--muted:#8a91a0;
+  --acc:#4c8dff;--good:#3fb27f;--warn:#d9a441;--bad:#e05d5d;--mono:ui-monospace,SFMono-Regular,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--panel)}
+h1{font-size:17px;margin:0 12px 0 0;font-weight:650;letter-spacing:.2px}
+.muted{color:var(--muted)}
+button,.btn{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:6px 11px;font:inherit;cursor:pointer}
+button:hover{border-color:#3d4452}
+button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+select,input[type=number],input[type=text],input[type=datetime-local],input[type=date]{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:6px 8px;font:inherit}
+input[type=number]{width:76px}
+#drop{border:1px dashed #3d4452;border-radius:9px;padding:8px 14px;color:var(--muted)}
+#drop.over{border-color:var(--acc);color:var(--text)}
+nav{display:flex;gap:4px;padding:10px 18px 0;border-bottom:1px solid var(--line);background:var(--panel)}
+nav button{border-radius:8px 8px 0 0;border-bottom:none;padding:8px 16px}
+nav button.on{background:var(--bg);color:var(--text);border-color:var(--line);font-weight:600;position:relative;top:1px}
+main{padding:14px 18px 40px;max-width:1500px}
+.controls{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.grp{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.grp>label{color:var(--muted);margin-right:2px}
+.sum{margin:12px 2px;color:var(--muted)}
+.sum b{color:var(--text)}
+.cards{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:120px}
+.card .v{font-size:20px;font-weight:650}
+.card .l{color:var(--muted);font-size:12px}
+section{margin-top:18px}
+h2{font-size:15px;margin:0 0 8px;font-weight:650}
+.tw{overflow:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{position:sticky;top:0;background:var(--panel2);color:var(--muted);font-weight:600;cursor:pointer;user-select:none}
+th.sorted{color:var(--text)}
+td.l,th.l{text-align:left}
+tbody tr:hover{background:#1b1f27}
+tr.click{cursor:pointer}
+.st{padding:2px 8px;border-radius:20px;font-size:12px;font-weight:600}
+.st.top{background:rgba(63,178,127,.15);color:var(--good)}
+.st.edge{background:rgba(217,164,65,.15);color:var(--warn)}
+.st.mid{background:rgba(138,145,160,.15);color:var(--muted)}
+.st.bl{background:rgba(224,93,93,.15);color:var(--bad)}
+.neg{color:var(--bad)}.pos{color:var(--good)}
+.lists{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:10px}
+.list{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.list .head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.list pre{margin:0;white-space:pre-wrap;word-break:break-all;font:12px/1.5 var(--mono);color:#cfd3da;max-height:140px;overflow:auto}
+details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-top:14px}
+summary{cursor:pointer;font-weight:600}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(520px,1fr));gap:14px;margin-top:10px}
+.set{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px 18px;margin-top:10px}
+.set label{display:flex;justify-content:space-between;gap:10px;align-items:center;color:var(--muted)}
+.set input[type=text]{width:100%}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-start;justify-content:center;padding:30px 12px;overflow:auto;z-index:5}
+#modal .box{background:var(--bg);border:1px solid var(--line);border-radius:12px;max-width:1150px;width:100%;padding:16px 18px}
+.note{color:var(--muted);font-size:12.5px;margin-top:6px}
+.warn{color:var(--warn)}
+#empty{padding:50px 10px;text-align:center;color:var(--muted)}
+.toast{position:fixed;bottom:18px;right:18px;background:var(--acc);color:#fff;padding:8px 14px;border-radius:8px;display:none;z-index:9}
+</style>
+</head>
+<body>
+<div id="lock" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:var(--bg);z-index:20">
+  <form id="lform" style="background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px 26px;width:340px;display:flex;flex-direction:column;gap:10px">
+    <div style="font-size:18px;font-weight:650">Moon Stats</div>
+    <div id="ltitle" class="muted">Введи пароль</div>
+    <input id="lpw" type="password" placeholder="пароль" autocomplete="current-password" style="background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font:inherit">
+    <input id="lpw2" type="password" placeholder="повтори пароль" autocomplete="new-password" style="display:none;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font:inherit">
+    <label class="muted" style="display:flex;gap:8px;align-items:center"><input id="lrem" type="checkbox"> запам'ятати на цьому пристрої</label>
+    <button type="submit" class="on" style="padding:9px">Увійти</button>
+    <div id="lmsg" class="neg" style="min-height:18px;font-size:13px"></div>
+    <div id="lforgot" class="muted" style="font-size:12px">Пароль видає власник сайту.</div>
+  </form>
+</div>
+<div id="shell" style="display:none">
+
+<header>
+  <h1>Moon Stats</h1>
+  <label class="btn">Відкрити xlsx<input id="file" type="file" accept=".xlsx" hidden></label>
+  <button id="linkfile" title="Програма сама перечитує файл, коли він змінюється на диску">Підв'язати файл з ПК</button>
+  <button id="gsbtn" style="display:none"></button>
+  <div id="drop">або перетягни файл сюди</div>
+  <span id="fname" class="muted"></span>
+  <span style="margin-left:auto;display:flex;gap:6px"><button id="chpw" style="display:none"></button><button id="lockbtn">Заблокувати</button></span>
+  <span id="live" class="muted" style="display:none"><select id="every" title="Як часто оновлювати"><option value="1">кожну 1 хв</option><option value="5" selected>кожні 5 хв</option><option value="15">кожні 15 хв</option><option value="30">кожні 30 хв</option></select>
+    <button id="refresh">Оновити зараз</button> <button id="unlink">Відв'язати</button> <span id="livest"></span></span>
+</header>
+<div id="chbox" style="display:none;padding:12px 18px;background:var(--panel);border-bottom:1px solid var(--line)"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input id="ch1" type="password" placeholder="новий пароль"><input id="ch2" type="password" placeholder="повтори"><button id="chgo" class="on">Зберегти</button><span id="chmsg" class="muted"></span></div></div>
+<div id="gsbox" style="display:none;padding:12px 18px;background:var(--panel);border-bottom:1px solid var(--line)">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <input id="gsurl" type="text" placeholder="посилання на Google-таблицю" style="flex:1;min-width:320px">
+    <button id="gsgo" class="on">Підключити</button> <button id="gsclose">Сховати</button>
+  </div>
+  <div class="note">Як отримати посилання: у Google-таблиці <b>Файл → Поділитися → Опублікувати в Інтернеті</b> → «Увесь документ» → формат <b>Microsoft Excel (.xlsx)</b> → Опублікувати → скопіюй посилання сюди.
+  Google сам оновлює опубліковану версію при змінах (із затримкою до ~5 хв). Увага: опубліковане посилання може відкрити будь-хто, у кого воно є.
+  У розширенні можна спершу спробувати звичайне посилання на таблицю (з адресного рядка): якщо ти увійшов у Google в цьому Chrome і маєш доступ, воно може завантажитись без публікації.</div>
+</div>
+<nav id="tabs"></nav>
+<main>
+  <div id="empty">Завантажую таблицю... Якщо дані не з'явились, натисни «Оновити зараз» або відкрий xlsx вручну.</div>
+  <div id="app" style="display:none">
+    <div class="controls">
+      <div class="grp"><label>Спайк від</label><input id="smin" type="number" step="0.5" min="0"> %
+        <label style="margin-left:8px">до</label><input id="smax" type="number" step="0.5" min="0" placeholder="∞"> %</div>
+      <div class="grp" id="periods"><label>Період</label></div>
+      <div class="grp"><input id="days" type="number" min="0" step="1" title="днів від останньої події"> дн.</div>
+      <div class="grp" id="sides"><label>Сторона</label></div>
+      <div class="grp" id="tops"><label>Топ</label></div>
+      <div class="grp"><label>Мін. подій</label><input id="minn" type="number" min="1" step="1"></div>
+      <div class="grp"><label>Монета</label><input id="coinq" type="text" placeholder="пошук" style="width:110px"></div>
+    </div>
+
+    <div class="sum" id="sum"></div>
+    <div class="cards" id="cards"></div>
+
+    <section>
+      <div style="display:flex;justify-content:space-between;align-items:end;gap:10px;flex-wrap:wrap">
+        <h2 id="toptitle">Топ-лист</h2>
+        <div class="grp"><button id="copymd">Копіювати таблицю (Markdown)</button></div>
+      </div>
+      <div class="tw"><table id="coins"></table></div>
+      <div class="note" id="coinnote"></div>
+    </section>
+
+    <section>
+      <h2>Списки</h2>
+      <div class="lists" id="lists"></div>
+    </section>
+
+    <details open>
+      <summary>Ринок: сторони, розмір спайку, плече, дні</summary>
+      <div class="grid2" id="market"></div>
+    </details>
+
+    <details>
+      <summary>Налаштування (зберігаються в цьому браузері)</summary>
+      <div class="set" id="settings"></div>
+      <div style="margin-top:10px;display:flex;gap:8px"><button id="reset">Скинути до стандартних</button></div>
+      <div class="note">E = (добрі − m·середні − k·мінуси) / N; добрі = відкат ≥ порогу доброго відкату (за замовчуванням 21%), середні = від 0 до порогу, мінуси = &lt;0%. k = стоп/тейк, m — збиток на недовідкаті в частках тейку. Значення k і m умовні.<br>
+      score = 0.4·≥поріг + 0.3·≥35% + 0.3·медіана − 2·&lt;0% − 20·CV — за ним монети йдуть від найкращої до найгіршої.</div>
+    </details>
+  </div>
+</main>
+<div id="modal"><div class="box" id="mbox"></div></div>
+<div class="toast" id="toast">Скопійовано</div>
+
+</div>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
