@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moon Stats — налаштування сайту</title>
+<style>
+body{margin:0;background:#0f1115;color:#e6e8ec;font:15px/1.5 system-ui,"Segoe UI",Roboto,sans-serif;display:flex;justify-content:center;padding:40px 14px}
+.box{background:#171a21;border:1px solid #2a2f3a;border-radius:14px;padding:22px 24px;max-width:640px;width:100%}
+h1{font-size:19px;margin:0 0 6px}
+p,.note{color:#8a91a0}
+label{display:block;margin:14px 0 5px;color:#c9cdd4}
+input{width:100%;box-sizing:border-box;background:#1e222b;color:#e6e8ec;border:1px solid #2a2f3a;border-radius:8px;padding:9px 10px;font:inherit}
+button{background:#1e222b;color:#e6e8ec;border:1px solid #2a2f3a;border-radius:8px;padding:9px 14px;font:inherit;cursor:pointer;margin-top:14px;margin-right:8px}
+button.on{background:#4c8dff;border-color:#4c8dff;color:#fff}
+#out{margin-top:14px;font-size:14px}
+.ok{color:#3fb27f}.bad{color:#e05d5d}
+code{background:#1e222b;padding:1px 6px;border-radius:5px}
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>Налаштування сайту Moon Stats</h1>
+  <p>Ця сторінка працює тільки у твоєму браузері й нічого нікуди не відправляє. Вона шифрує посилання на таблицю твоїм паролем і створює файл <code>config.js</code> для сайту.</p>
+
+  <label>1. Посилання на опубліковану таблицю (Файл → Поділитися → Опублікувати в Інтернеті → Увесь документ → Microsoft Excel .xlsx)</label>
+  <input id="url" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=xlsx">
+  <button id="test">Перевірити посилання</button>
+
+  <label>2. Пароль для сайту</label>
+  <input id="p1" type="password" autocomplete="new-password">
+  <label>Повтори пароль</label>
+  <input id="p2" type="password" autocomplete="new-password">
+
+  <button id="make" class="on">Створити config.js</button>
+  <div id="out"></div>
+  <p class="note" style="margin-top:18px">Якщо налаштовує Claude, після «Створити config.js» нічого не роби — він сам забере зашифрований текст (пароль у ньому не міститься). Що далі вручну: завантажений <code>config.js</code> поклади у репозиторій сайту замість старого (на GitHub: відкрий config.js → значок олівця або «Add file → Upload files»). Через хвилину-дві сайт почне приймати новий пароль, а старий перестане працювати.</p>
+</div>
+<script>
+"use strict";
+const te=new TextEncoder();
+const b64=u=>btoa(String.fromCharCode(...u));
+const out=document.getElementById('out');
+function normUrl(u){
+  u=u.trim(); if(!u) return '';
+  u=u.replace('/pubhtml','/pub');
+  if(/[?&]output=/.test(u)) u=u.replace(/([?&])output=[^&]*/,'$1output=xlsx'); else u+=(u.includes('?')?'&':'?')+'output=xlsx';
+  return u.replace(/[?&](gid|single)=[^&]*/g,'');
+}
+document.getElementById('test').onclick=async()=>{
+  const u=normUrl(document.getElementById('url').value);
+  if(!u){ out.innerHTML='<span class="bad">Встав посилання</span>'; return; }
+  if(!/\/spreadsheets\/d\/e\//.test(u)) out.innerHTML='<span class="bad">Схоже, це не посилання з «Опублікувати в Інтернеті» (у ньому має бути /d/e/). Перевіряю все одно...</span>';
+  else out.textContent='Перевіряю...';
+  try{
+    const r=await fetch(u+(u.includes('?')?'&':'?')+'_t='+Date.now(),{cache:'no-store'});
+    if(!r.ok) throw new Error('Google відповів '+r.status);
+    const buf=new Uint8Array(await r.arrayBuffer());
+    if(!(buf[0]===0x50&&buf[1]===0x4b)) throw new Error('за посиланням не xlsx — перевір, що вибрано формат Microsoft Excel (.xlsx)');
+    out.innerHTML='<span class="ok">Працює: завантажено '+(buf.length/1048576).toFixed(1)+' МБ xlsx.</span>';
+  }catch(e){ out.innerHTML='<span class="bad">Не вдалося: '+e.message+'. Якщо це «Failed to fetch», браузер не пустив запит. Напиши Claude, що саме з\'явилось.</span>'; }
+};
+document.getElementById('make').onclick=async()=>{
+  const u=normUrl(document.getElementById('url').value), a=document.getElementById('p1').value, b=document.getElementById('p2').value;
+  if(!u){ out.innerHTML='<span class="bad">Встав посилання</span>'; return; }
+  if(a.length<6){ out.innerHTML='<span class="bad">Пароль мінімум 6 символів</span>'; return; }
+  if(a!==b){ out.innerHTML='<span class="bad">Паролі не збігаються</span>'; return; }
+  out.textContent='Шифрую...';
+  const salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12));
+  const base=await crypto.subtle.importKey('raw',te.encode(a),'PBKDF2',false,['deriveKey']);
+  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:310000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt']);
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,te.encode(JSON.stringify({url:u}))));
+  const txt='// Moon Stats: зашифроване посилання на таблицю. Створено '+new Date().toLocaleString('uk-UA')+'\nwindow.MOON_CFG = '+JSON.stringify({v:1,salt:b64(salt),iv:b64(iv),ct:b64(ct)})+';\n';
+  const blob=new Blob([txt],{type:'text/javascript'}); const href=URL.createObjectURL(blob);
+  const aEl=document.createElement('a'); aEl.href=href; aEl.download='config.js'; document.body.appendChild(aEl); aEl.click(); aEl.remove();
+  window._cfg=txt;
+  out.innerHTML='<span class="ok">Готово: config.js створено і завантажено.</span> <a href="'+href+'" download="config.js" style="color:#4c8dff">Завантажити ще раз</a><pre id="cfgout" style="white-space:pre-wrap;word-break:break-all;background:#1e222b;padding:10px;border-radius:8px;font-size:12px;margin-top:10px"></pre>';
+  document.getElementById('cfgout').textContent=txt;
+  document.getElementById('p1').value=''; document.getElementById('p2').value='';
+};
+</script>
+</body>
+</html>
