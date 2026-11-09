@@ -27,6 +27,7 @@ code{background:#1e222b;padding:1px 6px;border-radius:5px}
   <input id="url" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=xlsx">
   <button id="test">Перевірити посилання</button>
 
+  <input id="logu" type="hidden"><input id="logk" type="hidden">
   <label>2. Пароль для сайту</label>
   <input id="p1" type="password" autocomplete="new-password">
   <label>Повтори пароль</label>
@@ -69,7 +70,7 @@ document.getElementById('make').onclick=async()=>{
   const salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12));
   const base=await crypto.subtle.importKey('raw',te.encode(a),'PBKDF2',false,['deriveKey']);
   const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:310000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt']);
-  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,te.encode(JSON.stringify({url:u}))));
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,te.encode(JSON.stringify(Object.assign({url:u},document.getElementById('logu').value?{log:document.getElementById('logu').value,k:document.getElementById('logk').value}:{})))));
   const txt='// Moon Stats: зашифроване посилання на таблицю. Створено '+new Date().toLocaleString('uk-UA')+'\nwindow.MOON_CFG = '+JSON.stringify({v:1,salt:b64(salt),iv:b64(iv),ct:b64(ct)})+';\n';
   const blob=new Blob([txt],{type:'text/javascript'}); const href=URL.createObjectURL(blob);
   const aEl=document.createElement('a'); aEl.href=href; aEl.download='config.js'; document.body.appendChild(aEl); aEl.click(); aEl.remove();

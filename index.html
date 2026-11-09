@@ -74,9 +74,11 @@ summary{cursor:pointer;font-weight:600}
   <form id="lform" style="background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px 26px;width:340px;display:flex;flex-direction:column;gap:10px">
     <div style="font-size:18px;font-weight:650">Moon Stats</div>
     <div id="ltitle" class="muted">Введи пароль</div>
+    <input id="lname" type="text" placeholder="твоє ім'я" maxlength="40" autocomplete="nickname" style="display:none;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font:inherit">
     <input id="lpw" type="password" placeholder="пароль" autocomplete="current-password" style="background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font:inherit">
     <input id="lpw2" type="password" placeholder="повтори пароль" autocomplete="new-password" style="display:none;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font:inherit">
     <label class="muted" style="display:flex;gap:8px;align-items:center"><input id="lrem" type="checkbox"> запам'ятати на цьому пристрої</label>
+    <div class="muted" style="font-size:12px">Входи на сайт записуються: ім'я, час і тип пристрою.</div>
     <button type="submit" class="on" style="padding:9px">Увійти</button>
     <div id="lmsg" class="neg" style="min-height:18px;font-size:13px"></div>
     <div id="lforgot" class="muted" style="font-size:12px">Пароль видає власник сайту.</div>
@@ -91,7 +93,7 @@ summary{cursor:pointer;font-weight:600}
   <button id="gsbtn" style="display:none"></button>
   <div id="drop">або перетягни файл сюди</div>
   <span id="fname" class="muted"></span>
-  <span style="margin-left:auto;display:flex;gap:6px"><button id="chpw" style="display:none"></button><button id="lockbtn">Заблокувати</button></span>
+  <span style="margin-left:auto;display:flex;gap:6px"><button id="chpw" style="display:none"></button><span class="muted" style="align-self:center">Ви: <b id="whoami"></b></span><button id="lockbtn">Заблокувати</button></span>
   <span id="live" class="muted" style="display:none"><select id="every" title="Як часто оновлювати"><option value="1">кожну 1 хв</option><option value="5" selected>кожні 5 хв</option><option value="15">кожні 15 хв</option><option value="30">кожні 30 хв</option></select>
     <button id="refresh">Оновити зараз</button> <button id="unlink">Відв'язати</button> <span id="livest"></span></span>
 </header>

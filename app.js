@@ -512,7 +512,7 @@ if(typeof DecompressionStream==='undefined'){ document.getElementById('empty').i
 
 
 // ================= Вхід за паролем (сайт) =================
-let VAULT={settings:null,gs:''}, KEY=null;
+let VAULT={settings:null,gs:''}, KEY=null, LOGCFG=null;
 const te=new TextEncoder(), td=new TextDecoder();
 const b64=u=>btoa(String.fromCharCode(...u));
 const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
@@ -528,14 +528,42 @@ function forgetKey(){ try{ sessionStorage.removeItem(KEYSTORE); localStorage.rem
 async function tryKey(key){
   const cfg=await open_(key,window.MOON_CFG);
   if(!cfg||!cfg.url) throw new Error('bad');
-  KEY=key; VAULT.gs=cfg.url;
+  KEY=key; VAULT.gs=cfg.url; LOGCFG=cfg.log&&cfg.k?{u:cfg.log,k:cfg.k}:null;
   try{ VAULT.settings=JSON.parse(localStorage.getItem('moonstats_site')||'null'); }catch(e){ VAULT.settings=null; }
 }
-function afterUnlock(){
+const NAMEKEY='moonstats_name';
+function getName(){ try{ return localStorage.getItem(NAMEKEY)||''; }catch(e){ return ''; } }
+function tabId(){ try{ let t=sessionStorage.getItem('moonstats_tab'); if(!t){ t=Math.random().toString(36).slice(2,10); sessionStorage.setItem('moonstats_tab',t); } return t; }catch(e){ return 'x'; } }
+function device(){
+  const ua=navigator.userAgent;
+  const os=/Android/i.test(ua)?'Android':/iPhone|iPad|iPod/i.test(ua)?'iOS':/Windows/i.test(ua)?'Windows':/Mac OS X/i.test(ua)?'Mac':/Linux/i.test(ua)?'Linux':'?';
+  const mob=/Mobi|Android|iPhone|iPad/i.test(ua)?'телефон':'ПК';
+  const m=ua.match(/(Edg|OPR|YaBrowser|Firefox|Chrome|Version)\/(\d+)/);
+  const br=m?(({Edg:'Edge',OPR:'Opera',YaBrowser:'Yandex',Version:'Safari'})[m[1]]||m[1])+' '+m[2]:'?';
+  return {d:mob+', '+os, b:br, s:screen.width+'x'+screen.height};
+}
+function ping(ev){
+  if(!LOGCFG) return;
+  try{
+    const q=new URLSearchParams(Object.assign({k:LOGCFG.k,n:getName()||'?',e:ev,i:tabId()},device()));
+    fetch(LOGCFG.u+'?'+q.toString(),{mode:'no-cors',cache:'no-store'}).catch(()=>{});
+  }catch(e){}
+}
+let hbT=null;
+function startHeartbeat(){
+  clearInterval(hbT);
+  hbT=setInterval(()=>{ if(document.visibilityState==='visible') ping('онлайн'); },4*60000);
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') ping('онлайн'); });
+}
+function afterUnlock(ev){
   document.getElementById('lock').style.display='none';
   document.getElementById('shell').style.display='';
   S=loadSettings(); buildSettings();
   SRC={type:'url',url:gsToUrl(VAULT.gs)}; startLive(); refreshNow(true);
+  const who=document.getElementById('whoami'); if(who) who.textContent=getName()||'?';
+  let first=false; try{ first=!sessionStorage.getItem('moonstats_logged'); sessionStorage.setItem('moonstats_logged','1'); }catch(e){}
+  if(ev==='вхід'||first) ping(ev==='вхід'?'вхід':'повернення'); else ping('онлайн');
+  startHeartbeat();
 }
 async function initLock(){
   const L=document.getElementById('lock'), msg=document.getElementById('lmsg');
@@ -548,17 +576,21 @@ async function initLock(){
   }
   const SALT=unb64(window.MOON_CFG.salt);
   const k=storedKey();
-  if(k){ try{ await tryKey(await crypto.subtle.importKey('raw',unb64(k),{name:'AES-GCM'},true,['encrypt','decrypt'])); return afterUnlock(); }catch(e){ forgetKey(); } }
-  L.style.display='flex'; document.getElementById('ltitle').textContent='Введи пароль'; document.getElementById('lpw').focus();
+  if(k){ try{ await tryKey(await crypto.subtle.importKey('raw',unb64(k),{name:'AES-GCM'},true,['encrypt','decrypt'])); return afterUnlock('повернення'); }catch(e){ forgetKey(); } }
+  L.style.display='flex'; document.getElementById('ltitle').textContent='Введи своє ім\'я і пароль';
+  const nm=document.getElementById('lname'); nm.style.display=''; nm.value=getName(); (nm.value?document.getElementById('lpw'):nm).focus();
   document.getElementById('lform').onsubmit=async ev=>{
     ev.preventDefault(); msg.textContent='Перевіряю...';
     const pw=document.getElementById('lpw').value;
+    const nmv=document.getElementById('lname').value.trim();
+    if(!nmv){ msg.textContent='Вкажи ім\'я'; document.getElementById('lname').focus(); return; }
+    try{ localStorage.setItem(NAMEKEY,nmv.slice(0,40)); }catch(e){}
     try{ await tryKey(await deriveKey(pw,SALT)); }
     catch(e){ msg.textContent='Невірний пароль'; document.getElementById('lpw').select(); return; }
     const raw=b64(new Uint8Array(await crypto.subtle.exportKey('raw',KEY)));
     try{ sessionStorage.setItem(KEYSTORE,raw); if(document.getElementById('lrem').checked) localStorage.setItem(KEYSTORE,raw); }catch(e){}
     document.getElementById('lpw').value=''; msg.textContent='';
-    afterUnlock();
+    afterUnlock('вхід');
   };
 }
 document.getElementById('lockbtn').onclick=()=>{ forgetKey(); location.reload(); };
