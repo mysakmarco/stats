@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#10151f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>SMC Скрінер</title>
+<style>
+:root{
+  /* одна колонка шириною телефона, нижня панель вкладок, картки сетапів */
+  --bg:#10151f; --panel:#182030; --panel2:#1f2a3d; --line:#2c3950;
+  --text:#e8edf5; --mute:#8d9bb3; --accent:#f0b34a;
+  --long:#35c48b; --short:#f0616d; --warn:#e8b54a;
+  --mono:ui-monospace,"Cascadia Mono",Consolas,Menlo,monospace;
+  --sans:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:#0a0e15;color:var(--text);font:15px/1.45 var(--sans);display:flex;justify-content:center}
+#app{width:100%;max-width:480px;height:100%;background:var(--bg);display:flex;flex-direction:column;position:relative}
+header{padding:14px 16px 10px;border-bottom:1px solid var(--line);background:var(--panel)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+h1{font-size:18px;margin:0;letter-spacing:.2px}
+h1 span{color:var(--accent)}
+.clock{font:13px var(--mono);color:var(--mute);text-align:right}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{font-size:12px;padding:3px 9px;border-radius:999px;background:var(--panel2);color:var(--mute);border:1px solid var(--line)}
+.chip.on{color:#10151f;background:var(--accent);border-color:var(--accent);font-weight:600}
+.chip.bull{color:var(--long);border-color:var(--long)}
+.chip.bear{color:var(--short);border-color:var(--short)}
+main{flex:1;overflow-y:auto;padding:12px 16px 20px;-webkit-overflow-scrolling:touch}
+.view{display:none;flex-direction:column;gap:12px}
+.view.act{display:flex}
+.scan{width:100%;padding:13px;border:0;border-radius:12px;background:var(--accent);color:#10151f;font:600 16px var(--sans);cursor:pointer}
+.scan:disabled{opacity:.6;cursor:default}
+.scan:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+.bar{height:4px;background:var(--panel2);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.status{font-size:13px;color:var(--mute);min-height:18px}
+.status.err{color:var(--short)}
+.card{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--mute);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.card.LONG{border-left-color:var(--long)}
+.card.SHORT{border-left-color:var(--short)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.sym{font-weight:700;font-size:17px}
+.dir{font:700 12px var(--sans);padding:2px 8px;border-radius:6px}
+.LONG .dir{background:rgba(53,196,139,.16);color:var(--long)}
+.SHORT .dir{background:rgba(240,97,109,.16);color:var(--short)}
+.pill{font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--panel2);color:var(--mute);text-transform:uppercase;letter-spacing:.4px}
+.pill.ENTER{background:var(--accent);color:#10151f}
+.pill.WAIT{border:1px solid var(--accent);color:var(--accent)}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.cell{background:var(--panel2);border-radius:8px;padding:6px 8px;min-width:0}
+.cell small{display:block;font-size:10px;color:var(--mute);text-transform:uppercase;letter-spacing:.5px}
+.cell b{font:600 13px var(--mono);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.score{font:12px var(--mono);color:var(--mute)}
+details summary{cursor:pointer;color:var(--accent);font-size:13px;font-weight:600;padding:2px 0}
+ul{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:13.5px}
+li.w{color:var(--warn)}
+h3{margin:8px 0 0;font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.6px}
+.copy{align-self:flex-start;background:none;border:1px solid var(--line);color:var(--mute);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer}
+.empty{color:var(--mute);text-align:center;padding:28px 10px;font-size:14px}
+.radar{display:flex;flex-direction:column;gap:2px}
+.radar p{margin:0;font-size:13.5px;color:var(--mute)}
+label{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--mute)}
+input,select{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px 12px;font:15px var(--sans);width:100%}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.note{font-size:12.5px;color:var(--mute);line-height:1.5}
+nav{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);background:var(--panel)}
+nav button{background:none;border:0;color:var(--mute);padding:12px 4px 14px;font:600 13px var(--sans);cursor:pointer;border-top:2px solid transparent}
+nav button.act{color:var(--accent);border-top-color:var(--accent)}
+nav button em{font-style:normal;font:11px var(--mono);margin-left:4px;opacity:.8}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="top">
+      <h1>SMC <span>Скрінер</span></h1>
+      <div class="clock" id="clock"></div>
+    </div>
+    <div class="chips" id="chips"></div>
+  </header>
+  <main>
+    <section class="view act" id="v-setups">
+      <button class="scan" id="scanBtn">Сканувати ринок</button>
+      <div class="bar"><i id="prog"></i></div>
+      <div class="status" id="status">Натисни «Сканувати ринок». Дані беруться з біржі напряму.</div>
+      <div id="setups" class="view act"></div>
+    </section>
+    <section class="view" id="v-radar">
+      <p class="note">Sweep уже був, структура ще не зламана. Входу немає, поки не буде BOS тілом.</p>
+      <div id="radar" class="view act"></div>
+    </section>
+    <section class="view" id="v-settings">
+      <label>Біржа
+        <select id="s-exchange"><option value="auto">Авто (Bybit, якщо ні, то Binance)</option><option value="bybit">Bybit</option><option value="binance">Binance Futures</option></select>
+      </label>
+      <label>Режим
+        <select id="s-mode"><option value="intraday">Інтрадей: D1 / 4H / M15</option><option value="scalp">Скальп: 4H / 1H / M5</option></select>
+      </label>
+      <div class="two">
+        <label>Пар за обігом<input id="s-top" type="number" min="5" max="80" inputmode="numeric"></label>
+        <label>Мін. бал<input id="s-min" type="number" min="0" max="20" inputmode="numeric"></label>
+      </div>
+      <label>Свій список (через кому, порожньо = топ за обігом)
+        <input id="s-symbols" type="text" placeholder="BTCUSDT,ETHUSDT" autocapitalize="characters">
+      </label>
+      <div class="two">
+        <label>Депозит, USDT<input id="s-balance" type="number" min="0" inputmode="decimal"></label>
+        <label>Ризик на угоду, %<input id="s-risk" type="number" min="0.1" max="5" step="0.1" inputmode="decimal"></label>
+      </div>
+      <div class="two">
+        <label>Автооновлення, хв (0 = вимк.)<input id="s-loop" type="number" min="0" max="60" inputmode="numeric"></label>
+        <label>Звук про новий сетап
+          <select id="s-sound"><option value="1">Увімкнено</option><option value="0">Вимкнено</option></select>
+        </label>
+      </div>
+      <p class="note">Бал: A від 12, B від 9. Бектесту немає, пороги стартові. Календар новин не перевіряється: перед FOMC / NFP / CPI не входь. Автооновлення працює, поки сторінка відкрита.</p>
+    </section>
+  </main>
+  <nav>
+    <button data-v="setups" class="act">Сетапи<em id="n-setups"></em></button>
+    <button data-v="radar">Радар<em id="n-radar"></em></button>
+    <button data-v="settings">Налаштування</button>
+  </nav>
+</div>
+<script>
+/*CORE*/
+const MODES={intraday:["1d","4h","15m"],scalp:["4h","1h","5m"]};
+const mirror=cs=>cs.map(([t,o,h,l,c,v])=>[t,-o,-l,-h,-c,v]);
+function swings(c,n=2){const hi=[],lo=[];
+  for(let i=n;i<c.length-n;i++){const h=c[i][2],l=c[i][3];let H=true,L=true;
+    for(let k=1;k<=n;k++){if(!(h>c[i-k][2]&&h>=c[i+k][2]))H=false;if(!(l<c[i-k][3]&&l<=c[i+k][3]))L=false;}
+    if(H)hi.push(i);if(L)lo.push(i);}
+  return [hi,lo];}
+function atrOf(c,n=14){let s=0,k=0;
+  for(let i=Math.max(1,c.length-n);i<c.length;i++){s+=Math.max(c[i][2]-c[i][3],Math.abs(c[i][2]-c[i-1][4]),Math.abs(c[i][3]-c[i-1][4]));k++;}
+  return k?s/k:0;}
+function biasOf(c){const [hi,lo]=swings(c,2);
+  if(hi.length<2||lo.length<2)return ["flat","мало даних"];
+  const h1=c[hi[hi.length-2]][2],h2=c[hi[hi.length-1]][2],l1=c[lo[lo.length-2]][3],l2=c[lo[lo.length-1]][3],last=c[c.length-1][4];
+  if(h2>h1&&l2>l1)return last>=l2?["bull","HH+HL"]:["flat","структура зламана вниз"];
+  if(h2<h1&&l2<l1)return last<=h2?["bear","LH+LL"]:["flat","структура зламана вгору"];
+  if(last>h2)return ["bull","BOS тілом вгору"];
+  if(last<l2)return ["bear","BOS тілом вниз"];
+  return ["flat","діапазон"];}
+function dealingRange(c){const [hi,lo]=swings(c,2);if(!hi.length||!lo.length)return null;
+  const h=c[hi[hi.length-1]][2],l=c[lo[lo.length-1]][3];return h>l?[l,h]:null;}
+function htfTargets(h4,ctx,d){const out=[];
+  for(const cs of [h4,ctx]){const [hi,lo]=swings(cs,2);
+    if(d===1)hi.forEach(i=>out.push(cs[i][2]));else lo.forEach(i=>out.push(-cs[i][3]));}
+  return out;}
+function findLong(c,live,atr,ext,lookback){
+  const L=c.length;if(L<40)return null;
+  const [hi,lo]=swings(c,2);let best=null;
+  for(const j of lo){const level=c[j][3];let k=-1;
+    for(let i=j+1;i<L;i++)if(c[i][3]<level){k=i;break;}
+    if(k<0||k<L-lookback)continue;
+    let m=-1;for(let i=k;i<Math.min(k+3,L);i++)if(c[i][4]>level){m=i;break;}
+    if(m<0)continue;
+    let bad=false;for(let i=m;i<L;i++)if(c[i][4]<level){bad=true;break;}
+    if(bad)continue;
+    if(!best||k>best.k||(k===best.k&&j>best.j))best={k,j,level};}
+  if(!best)return null;
+  const {k,level}=best;let sw=k;
+  for(let i=k;i<L;i++)if(c[i][3]<c[sw][3])sw=i;
+  const sweepLow=c[sw][3];
+  if(live[3]<sweepLow)return null;
+  const prevHi=hi.filter(i=>i<sw);if(!prevHi.length)return null;
+  const ref=c[prevHi[prevHi.length-1]][2];
+  let vs=0,vn=0;for(let i=Math.max(0,sw-20);i<sw;i++){vs+=c[i][5];vn++;}
+  const volx=vn&&vs>0?c[sw][5]/(vs/vn):1;
+  const base={level,sweepLow,refHi:ref,swT:c[sw][0],sweepAge:L-1-sw,volx,stage:"sweep"};
+  let bos=-1;for(let i=sw+1;i<L;i++)if(c[i][4]>ref){bos=i;break;}
+  if(bos<0)return base.sweepAge<=16?base:null;
+  let legHigh=-Infinity;for(let i=sw;i<L;i++)legHigh=Math.max(legHigh,c[i][2]);
+  let fvg=null;
+  for(let i=sw+1;i<=Math.min(bos,L-2);i++){const bot=c[i-1][2],top=c[i+1][3];
+    if(top>bot){let filled=false;for(let x=i+2;x<L;x++)if(c[x][4]<bot){filled=true;break;}
+      if(!filled&&(!fvg||top-bot>=fvg[0]))fvg=[top-bot,bot,top];}}
+  let dsp=sw+1,db=-1;for(let i=sw+1;i<=bos;i++){const b=Math.abs(c[i][4]-c[i][1]);if(b>=db){db=b;dsp=i;}}
+  let ob=-1;for(let i=dsp-1;i>=sw;i--)if(c[i][4]<c[i][1]){ob=i;break;}
+  let zb,zt,entry,obOverlap=false;
+  if(fvg){zb=fvg[1];zt=fvg[2];entry=(zb+zt)/2;if(ob>=0)obOverlap=c[ob][3]<=zt&&c[ob][2]>=zb;}
+  else if(ob>=0){zb=Math.min(c[ob][1],c[ob][4]);zt=Math.max(c[ob][1],c[ob][4]);entry=(zb+zt)/2;}
+  else return Object.assign({},base,{stage:"bos",reason:"немає POI (FVG/OB)"});
+  const sl=sweepLow-0.15*atr;if(entry<=sl)return null;
+  const risk=entry-sl;
+  const tg=[...new Set([...hi.map(i=>c[i][2]),legHigh,...ext].filter(x=>x>entry))].sort((a,b)=>a-b);
+  const fta=tg.length?tg[0]:null;
+  const tp=tg.find(x=>(x-entry)/risk>=2);
+  if(tp===undefined)return Object.assign({},base,{stage:"bos",reason:"RR до найближчої цілі < 2"});
+  const tp2=tg.find(x=>x>tp);
+  const path=c.slice(bos+1).concat([live]);const price=live[4];
+  const touched=Math.min(...path.map(x=>x[3]))<=entry;
+  let state;
+  if(Math.max(...path.map(x=>x[2]))>=tp)state="DONE";
+  else if(touched)state="LATE";
+  else if(price<=zt)state="ENTER";
+  else if(price-entry>0.5*(tp-entry))state="MISSED";
+  else state="WAIT";
+  const retr=legHigh>sweepLow?(legHigh-entry)/(legHigh-sweepLow):0;
+  return Object.assign({},base,{stage:"setup",state,entry,sl,tp,tp2:tp2===undefined?null:tp2,fta,zoneBottom:zb,zoneTop:zt,legHigh,
+    hasFvg:!!fvg,ob:ob>=0,obOverlap,price,risk,retr});}
+const PK=["level","sweepLow","refHi","entry","sl","tp","tp2","fta","zoneBottom","zoneTop","legHigh","price"];
+function unmirror(r){r=Object.assign({},r);for(const k of PK)if(r[k]!=null)r[k]=-r[k];
+  if("zoneTop" in r){const t=r.zoneTop;r.zoneTop=r.zoneBottom;r.zoneBottom=t;}return r;}
+function fmt(p){if(p==null)return "-";const a=Math.abs(p);if(a===0)return "0";
+  const dec=Math.min(8,Math.max(2,5-Math.floor(Math.log10(a))));return p.toFixed(dec);}
+// now = {hour, wd}  wd: 0=понеділок ... 6=неділя (час Києва)
+function analyze(sym,ctx,htf,ltf,now,a){
+  const h4c=htf.slice(0,-1);const [b4,why4]=biasOf(h4c);if(b4==="flat")return null;
+  const d=b4==="bull"?1:-1;const [bctx,whyctx]=biasOf(ctx.slice(0,-1));
+  const lc=ltf.slice(0,-1),live=ltf[ltf.length-1];const atr=atrOf(lc);
+  const mc=d===1?lc:mirror(lc),ml=d===1?live:mirror([live])[0];
+  let r=findLong(mc,ml,atr,htfTargets(h4c,ctx.slice(0,-1),d),a.lookback||80);
+  if(!r)return null;if(d===-1)r=unmirror(r);
+  const side=d===1?"LONG":"SHORT",nm=d===1?"бичий":"ведмежий";
+  const T=a.tfs.map(x=>x.toUpperCase());
+  const kz=[9,10,11,14,15,16].includes(now.hour),wd=now.wd;
+  const reasons=[],warns=[];let score=2;
+  reasons.push(`${T[1]} тренд ${nm} (${why4}), працюємо лише ${side}`);
+  if(bctx===b4){score++;reasons.push(`${T[0]} теж ${nm} (${whyctx}), старший ТФ погоджується`);}
+  else if(bctx!=="flat"){score--;warns.push(`${T[0]} проти ідеї (${whyctx}): вхід агресивніший, ризик 0.5%`);}
+  score+=2;
+  reasons.push(`${T[2]}: знято ліквідність за ${d===1?"low":"high"} ${fmt(r.level)} (екстремум ${fmt(r.sweepLow)}) і ціна повернулась тілом назад`);
+  if(r.volx>=1.5){score++;reasons.push(`об'єм на sweep x${r.volx.toFixed(1)} від середнього: реальне зняття стопів`);}
+  const sig={symbol:sym,dir:side,price:live[4],reasons,warns,id:`${sym}|${side}|${r.swT}`};
+  const word=d===1?"вище":"нижче";
+  if(r.stage==="sweep")return Object.assign(sig,{state:"WATCH",score,tier:"-",
+    plan:[`Чекай BOS: ${T[2]} має закритись тілом ${word} ${fmt(r.refHi)}.`,"Поки структура не зламана, входу немає."]});
+  if(r.stage==="bos")return Object.assign(sig,{state:"SKIP",score,tier:"-",plan:[`Пропуск: ${r.reason}.`]});
+  if(["DONE","LATE","MISSED"].includes(r.state)){
+    const lb={DONE:"ціль уже відпрацювала",LATE:"зону вже тестували, угода могла відкритись",MISSED:"ціна пішла без входу (понад 50% шляху до TP)"}[r.state];
+    return Object.assign(sig,{state:"SKIP",score,tier:"-",plan:[`Пропуск: ${lb}.`]});}
+  score+=2;reasons.push(`BOS: закриття тілом ${word} ${fmt(r.refHi)}, структура змінилась`);
+  score++;
+  reasons.push(r.hasFvg?`POI: FVG ${fmt(r.zoneBottom)} - ${fmt(r.zoneTop)}, вхід на CE (50%)`:`POI: Order Block ${fmt(r.zoneBottom)} - ${fmt(r.zoneTop)}`);
+  if(r.obOverlap){score++;reasons.push("OB перетинається з FVG (confluence)");}
+  const rng=dealingRange(h4c);
+  if(rng){const pos=(r.entry-rng[0])/(rng[1]-rng[0]);const ok=d===1?pos<0.5:pos>0.5;const zone=pos<0.5?"Discount":"Premium";
+    const pct=Math.round(Math.max(0,Math.min(1,pos))*100);
+    if(ok){score+=2;reasons.push(`вхід у ${zone} ${T[1]}-діапазону (${pct}%), правильна зона для ${side}`);}
+    else{score--;warns.push(`вхід у ${zone} (${pct}%): для ${side} краще ${d===1?"Discount":"Premium"}`);}}
+  if(r.retr>=0.5&&r.retr<=0.85){score++;reasons.push(`відкат імпульсу ${Math.round(r.retr*100)}% (зона OTE 62-79%)`);}
+  const rr=Math.abs(r.tp-r.entry)/r.risk;if(rr>=3)score++;
+  if(kz){score++;reasons.push("зараз kill zone (Лондон 09-12 / NY 14-17 за Києвом)");}
+  else warns.push("поза kill zone: ліквідність гірша, краще лімітка і чекати");
+  if(wd===0){score--;warns.push("понеділок маніпулятивний (правило N-87), краще пропустити");}
+  else if(wd>=1&&wd<=3)score++;
+  else if(wd===4)warns.push("п'ятниця: лише інтрадей, не переносити позицію на вихідні");
+  else warns.push("вихідні: низька ліквідність");
+  warns.push("календар новин не перевіряється: перед FOMC/NFP/CPI не входь");
+  const ftaOn=r.fta!=null&&r.fta!==r.tp;
+  if(ftaOn&&Math.abs(r.fta-r.entry)/r.risk<1)warns.push(`FTA ${fmt(r.fta)} близько до входу: дочекайся реакції там`);
+  const tier=score>=12?"A":score>=9?"B":"C";
+  const plan=[`Лімітка ${side} @ ${fmt(r.entry)} ${r.hasFvg?"(CE FVG)":"(середина OB)"}`,
+    `SL ${fmt(r.sl)} за sweep-екстремумом; скасувати, якщо ${T[2]} закриється тілом за SL`,
+    `TP ${fmt(r.tp)} (RR ${rr.toFixed(1)})`+(r.tp2!=null?`, далі ${fmt(r.tp2)}`:"")];
+  if(ftaOn)plan.push(`Перша фіксація (50-70%) на FTA ${fmt(r.fta)}, решта в беззбиток лише за технічною причиною`);
+  if(a.balance>0){const qty=a.balance*a.risk/100/r.risk;
+    plan.push(`Обсяг при ризику ${a.risk}% від ${a.balance} USDT: ${Number(qty.toPrecision(4))} монет (~${Math.round(qty*r.entry)} USDT)`);}
+  plan.push("Не вийшло: 1 збиткова = день завершено. Ліміт не налився: не стрибай на інші пари.");
+  if(r.state==="ENTER")plan.unshift("Ціна вже в зоні: став ліміт на CE зараз (або маркет, якщо RR лишається від 2).");
+  else plan.unshift(`Ціна ${fmt(r.price)} ще не в зоні (до входу ${(Math.abs(r.price-r.entry)/r.price*100).toFixed(2)}%): став ліміт і чекай.`);
+  return Object.assign(sig,{state:r.state,score,tier,entry:r.entry,sl:r.sl,tp:r.tp,rr,plan});}
+/*END*/
+
+// ---------------------------------------------------------------- біржі
+const STABLES=["USDC","FDUSD","TUSD","USDE","DAI","EUR"];
+async function getJSON(url){
+  for(let a=0;a<3;a++){
+    try{const r=await Promise.race([fetch(url),new Promise((_,rej)=>setTimeout(()=>rej(new Error("таймаут 15 с")),15000))]);
+      if(!r.ok)throw new Error("HTTP "+r.status);return await r.json();}
+    catch(e){if(a===2)throw e;await new Promise(s=>setTimeout(s,800*(a+1)));}}}
+const EX={
+  bybit:{name:"Bybit",TF:{"5m":"5","15m":"15","1h":"60","4h":"240","1d":"D"},
+    async universe(n){const d=await getJSON("https://api.bybit.com/v5/market/tickers?category=linear");
+      return d.result.list.filter(r=>r.symbol.endsWith("USDT")&&!r.symbol.includes("-")&&!STABLES.some(s=>r.symbol.startsWith(s)))
+        .sort((a,b)=>(+b.turnover24h||0)-(+a.turnover24h||0)).slice(0,n).map(r=>r.symbol);},
+    async klines(s,tf,limit){const d=await getJSON(`https://api.bybit.com/v5/market/kline?category=linear&symbol=${s}&interval=${this.TF[tf]}&limit=${limit}`);
+      if(d.retCode!==0)throw new Error(d.retMsg);
+      return d.result.list.map(r=>[+r[0],+r[1],+r[2],+r[3],+r[4],+r[5]]).sort((a,b)=>a[0]-b[0]);}},
+  binance:{name:"Binance",
+    async universe(n){const d=await getJSON("https://fapi.binance.com/fapi/v1/ticker/24hr");
+      return d.filter(r=>r.symbol.endsWith("USDT")&&!r.symbol.includes("_")&&!STABLES.some(s=>r.symbol.startsWith(s)))
+        .sort((a,b)=>+b.quoteVolume-+a.quoteVolume).slice(0,n).map(r=>r.symbol);},
+    async klines(s,tf,limit){const d=await getJSON(`https://fapi.binance.com/fapi/v1/klines?symbol=${s}&interval=${tf}&limit=${limit}`);
+      return d.map(r=>[+r[0],+r[1],+r[2],+r[3],+r[4],+r[5]]);}}};
+
+// ------------------------------------------------------------- інтерфейс
+const $=id=>document.getElementById(id);
+const DEF={exchange:"auto",mode:"intraday",top:30,min:9,symbols:"",balance:1000,risk:1,loop:5,sound:"1"};
+let cfg=Object.assign({},DEF);
+try{Object.assign(cfg,JSON.parse(localStorage.getItem("smc-cfg")||"{}"));}catch(e){}
+const seen=new Set();let timer=null,busy=false,lastBtc="";
+for(const k of Object.keys(DEF)){const el=$("s-"+k);el.value=cfg[k];
+  el.addEventListener("change",()=>{cfg[k]=el.type==="number"?(+el.value||0):el.value;
+    try{localStorage.setItem("smc-cfg",JSON.stringify(cfg));}catch(e){}
+    if(k==="loop")schedule();});}
+document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("act",x===b));
+  ["setups","radar","settings"].forEach(v=>$("v-"+v).classList.toggle("act",v===b.dataset.v));}));
+function kyiv(){let p;
+  for(const tz of ["Europe/Kyiv","Europe/Kiev"]){try{
+    p=new Intl.DateTimeFormat("en-GB",{timeZone:tz,weekday:"short",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date());break;}catch(e){}}
+  if(!p){const d=new Date(Date.now()+2*3600e3);return {hour:d.getUTCHours(),min:d.getUTCMinutes(),wd:(d.getUTCDay()+6)%7};}
+  const g=t=>p.find(x=>x.type===t).value;
+  return {hour:+g("hour")%24,min:+g("minute"),wd:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].indexOf(g("weekday"))};}
+const WD=["Пн","Вт","Ср","Чт","Пт","Сб","Нд"];
+function header(){const n=kyiv();
+  $("clock").textContent=`${WD[n.wd]} ${String(n.hour).padStart(2,"0")}:${String(n.min).padStart(2,"0")} Київ`;
+  const kz=n.hour>=9&&n.hour<12?"London KZ":n.hour>=14&&n.hour<17?"NY KZ":"";
+  const day=n.wd===0?"Пн: уникати":n.wd<=3?"добрий день":n.wd===4?"Пт: інтрадей":"вихідні";
+  $("chips").innerHTML=`<span class="chip ${kz?"on":""}">${kz||"поза kill zone"}</span><span class="chip">${day}</span>${lastBtc}`;}
+header();setInterval(header,20000);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ST={ENTER:"Вхід зараз",WAIT:"Чекати лімітку"};
+function card(s){
+  const txt=`${s.symbol} ${s.dir}\nentry ${fmt(s.entry)} | SL ${fmt(s.sl)} | TP ${fmt(s.tp)} | RR ${s.rr.toFixed(1)}`;
+  return `<article class="card ${s.dir}">
+  <div class="row"><div class="row"><span class="sym">${esc(s.symbol.replace("USDT",""))}</span><span class="dir">${s.dir}</span></div><span class="pill ${s.state}">${ST[s.state]}</span></div>
+  <div class="grid"><div class="cell"><small>Вхід</small><b>${fmt(s.entry)}</b></div><div class="cell"><small>Стоп</small><b>${fmt(s.sl)}</b></div><div class="cell"><small>Тейк</small><b>${fmt(s.tp)}</b></div><div class="cell"><small>RR</small><b>${s.rr.toFixed(1)}</b></div></div>
+  <div class="row"><span class="score">бал ${s.score} · клас ${s.tier} · ціна ${fmt(s.price)}</span><button class="copy" data-t="${esc(txt)}">Копіювати рівні</button></div>
+  <details><summary>Чому і що робити</summary>
+    <h3>Чому</h3><ul>${s.reasons.map(x=>`<li>${esc(x)}</li>`).join("")}${s.warns.map(x=>`<li class="w">${esc(x)}</li>`).join("")}</ul>
+    <h3>План</h3><ul>${s.plan.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
+  </details></article>`;}
+$("setups").addEventListener("click",e=>{const b=e.target.closest(".copy");if(!b)return;
+  try{navigator.clipboard.writeText(b.dataset.t).then(()=>{b.textContent="Скопійовано";},()=>{b.textContent="Не вдалось";});}catch(x){b.textContent="Не вдалось";}});
+function beep(){try{const A=new (window.AudioContext||window.webkitAudioContext)();const o=A.createOscillator(),g=A.createGain();
+  o.frequency.value=1100;o.connect(g);g.connect(A.destination);g.gain.setValueAtTime(.15,A.currentTime);o.start();o.stop(A.currentTime+.35);}catch(e){}}
+function status(t,err){$("status").textContent=t;$("status").classList.toggle("err",!!err);}
+async function pool(items,n,fn){let i=0;await Promise.all(Array.from({length:n},async()=>{while(i<items.length){const x=items[i++];await fn(x);}}));}
+async function pickExchange(){
+  const order=cfg.exchange==="auto"?["bybit","binance"]:[cfg.exchange];let err;
+  for(const k of order){try{await EX[k].klines("BTCUSDT","4h",5);return EX[k];}catch(e){err=e;}}
+  const inFrame=window.self!==window.top;
+  throw new Error("біржа не відповідає ("+(err&&err.message||"мережа")+"). "+(inFrame?"Ти відкрив файл у вікні перегляду, де інтернет заблоковано. Відкрий screener.html у Chrome подвійним кліком з папки.":"Перевір інтернет або VPN, чи зміни біржу в налаштуваннях."));}
+async function scan(){
+  if(busy)return;busy=true;$("scanBtn").disabled=true;$("prog").style.width="2%";
+  try{
+    status("Підключаюсь до біржі…");
+    const ex=await pickExchange();const tfs=MODES[cfg.mode];
+    const a={tfs,balance:+cfg.balance||0,risk:+cfg.risk||1,lookback:80};
+    const syms=cfg.symbols.trim()?cfg.symbols.toUpperCase().split(/[\s,;]+/).filter(Boolean):await ex.universe(Math.max(5,Math.min(80,+cfg.top||30)));
+    try{const [hb]=biasOf((await ex.klines("BTCUSDT",tfs[1],200)).slice(0,-1));
+      lastBtc=`<span class="chip ${hb==="bull"?"bull":hb==="bear"?"bear":""}">BTC ${tfs[1].toUpperCase()}: ${hb==="bull"?"бичий":hb==="bear"?"ведмежий":"без тренду"}</span>`;header();}catch(e){}
+    const now=kyiv();const sigs=[];let done=0,flat=0,errs=0;
+    await pool(syms,4,async s=>{
+      try{const h=await ex.klines(s,tfs[1],200);
+        if(h.length<60||biasOf(h.slice(0,-1))[0]==="flat")flat++;
+        else{const [ctx,ltf]=await Promise.all([ex.klines(s,tfs[0],120),ex.klines(s,tfs[2],300)]);
+          const r=analyze(s,ctx,h,ltf,now,a);if(r)sigs.push(r);}}
+      catch(e){errs++;}
+      done++;$("prog").style.width=Math.round(done/syms.length*100)+"%";status(`Перевіряю ${done} з ${syms.length}…`);});
+    if(errs===syms.length)throw new Error("жодна пара не завантажилась. Перевір список пар або мережу.");
+    const acts=sigs.filter(s=>(s.state==="ENTER"||s.state==="WAIT")&&s.score>=(+cfg.min||0))
+      .sort((x,y)=>(x.state===y.state?y.score-x.score:x.state==="ENTER"?-1:1));
+    const watch=sigs.filter(s=>s.state==="WATCH");
+    $("setups").innerHTML=acts.length?acts.map(card).join(""):`<div class="empty">Готових сетапів немає.<br>Це нормально: менше угод, краще.</div>`;
+    $("radar").innerHTML=watch.length?watch.map(s=>`<article class="card ${s.dir}"><div class="row"><div class="row"><span class="sym">${esc(s.symbol.replace("USDT",""))}</span><span class="dir">${s.dir}</span></div><span class="score">ціна ${fmt(s.price)}</span></div><div class="radar">${s.plan.map(x=>`<p>${esc(x)}</p>`).join("")}</div></article>`).join(""):`<div class="empty">На радарі порожньо.</div>`;
+    $("n-setups").textContent=acts.length||"";$("n-radar").textContent=watch.length||"";
+    const fresh=acts.filter(s=>!seen.has(s.id));fresh.forEach(s=>seen.add(s.id));
+    if(fresh.length&&cfg.sound==="1")beep();
+    document.title=(acts.length?`(${acts.length}) `:"")+"SMC Скрінер";
+    const t=kyiv();
+    status(`${ex.name} · ${String(t.hour).padStart(2,"0")}:${String(t.min).padStart(2,"0")} · перевірено ${syms.length}, без тренду ${flat}`+(errs?`, помилок ${errs}`:"")+(fresh.length?` · нових сетапів: ${fresh.length}`:""));
+  }catch(e){status("Помилка: "+e.message,true);}
+  busy=false;$("scanBtn").disabled=false;setTimeout(()=>{$("prog").style.width="0";},600);}
+function schedule(){if(timer)clearInterval(timer);timer=null;const m=+cfg.loop||0;if(m>0)timer=setInterval(scan,Math.max(1,m)*60000);}
+$("scanBtn").addEventListener("click",scan);schedule();
+if(window.self===window.top)scan();
+</script>
+</body>
+</html>
