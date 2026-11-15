@@ -69,6 +69,11 @@ label{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--mute
 input,select{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px 12px;font:15px var(--sans);width:100%}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .note{font-size:12.5px;color:var(--mute);line-height:1.5}
+.mk{font-size:11px;color:var(--mute);border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+.lbl{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--mute)}
+.mkts{display:flex;flex-wrap:wrap;gap:8px}
+.mkts button{background:var(--panel2);border:1px solid var(--line);color:var(--mute);border-radius:999px;padding:8px 14px;font:600 13px var(--sans);cursor:pointer}
+.mkts button.on{background:var(--accent);border-color:var(--accent);color:#10151f}
 nav{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);background:var(--panel)}
 nav button{background:none;border:0;color:var(--mute);padding:12px 4px 14px;font:600 13px var(--sans);cursor:pointer;border-top:2px solid transparent}
 nav button.act{color:var(--accent);border-top-color:var(--accent)}
@@ -89,7 +94,7 @@ nav button em{font-style:normal;font:11px var(--mono);margin-left:4px;opacity:.8
     <section class="view act" id="v-setups">
       <button class="scan" id="scanBtn">Сканувати ринок</button>
       <div class="bar"><i id="prog"></i></div>
-      <div class="status" id="status">Натисни «Сканувати ринок». Дані беруться з біржі напряму.</div>
+      <div class="status" id="status">Крипта, форекс, метали, індекси. Дані беруться з біржі напряму.</div>
       <div id="setups" class="view act"></div>
     </section>
     <section class="view" id="v-radar">
@@ -103,8 +108,14 @@ nav button em{font-style:normal;font:11px var(--mono);margin-left:4px;opacity:.8
       <label>Режим
         <select id="s-mode"><option value="intraday">Інтрадей: D1 / 4H / M15</option><option value="scalp">Скальп: 4H / 1H / M5</option></select>
       </label>
+      <div class="lbl">Ринки
+        <div class="mkts" id="s-markets">
+          <button type="button" data-g="crypto">Крипта</button><button type="button" data-g="fx">Форекс</button><button type="button" data-g="metals">Метали</button><button type="button" data-g="idx">Індекси</button><button type="button" data-g="stocks">Акції</button>
+        </div>
+      </div>
+      <p class="note">Форекс: EURUSD, GBPUSD, USDJPY. Метали: золото, срібло. Індекси: Nasdaq (QQQ), S&P 500 (SPY), Russell (IWM). Це безстрокові контракти Bybit, ціна може трохи відрізнятись від брокера. На вихідних форекс закритий.</p>
       <div class="two">
-        <label>Пар за обігом<input id="s-top" type="number" min="5" max="80" inputmode="numeric"></label>
+        <label>Крипто-пар за обігом<input id="s-top" type="number" min="5" max="150" inputmode="numeric"></label>
         <label>Мін. бал<input id="s-min" type="number" min="0" max="20" inputmode="numeric"></label>
       </div>
       <label>Свій список (через кому, порожньо = топ за обігом)
@@ -272,7 +283,18 @@ function analyze(sym,ctx,htf,ltf,now,a){
 /*END*/
 
 // ---------------------------------------------------------------- біржі
-const STABLES=["USDC","FDUSD","TUSD","USDE","DAI","EUR"];
+const STABLES=["USDC","FDUSD","TUSD","USDE","USD1","DAI"];
+// ринки поза криптою: безстрокові контракти на біржі (ціна йде за базовим активом)
+const TRAD={fx:["EURUSDUSDT","GBPUSDUSDT","USDJPYUSDT","USDBRLUSDT"],
+  metals:["XAUUSDT","XAGUSDT","XPTUSDT","XPDUSDT","COPPERUSDT"],
+  idx:["QQQUSDT","SPYUSDT","IWMUSDT"],
+  stocks:["NVDAUSDT","TSLAUSDT","AAPLUSDT","MSTRUSDT","GOOGLUSDT","AMZNUSDT","METAUSDT","COINUSDT","HOODUSDT","JPMUSDT","DELLUSDT"]};
+const GROUP={};for(const g in TRAD)TRAD[g].forEach(s=>GROUP[s]=g);
+const DUP=["XAUTUSDT","PAXGUSDT"]; // токени золота дублюють XAU
+const GNAME={crypto:"крипта",fx:"форекс",metals:"метали",idx:"індекси",stocks:"акції"};
+const NICE={XAUUSDT:"XAUUSD",XAGUSDT:"XAGUSD",XPTUSDT:"XPTUSD",XPDUSDT:"XPDUSD",COPPERUSDT:"COPPER",QQQUSDT:"QQQ · Nasdaq",SPYUSDT:"SPY · S&P 500",IWMUSDT:"IWM · Russell"};
+const nice=s=>NICE[s]||(GROUP[s]==="fx"?s.slice(0,-4):s.replace(/USDT$/,""));
+const clean=cs=>cs.filter(c=>!(c[5]===0&&c[2]===c[3]));
 async function getJSON(url){
   for(let a=0;a<3;a++){
     try{const r=await Promise.race([fetch(url),new Promise((_,rej)=>setTimeout(()=>rej(new Error("таймаут 15 с")),15000))]);
@@ -280,29 +302,34 @@ async function getJSON(url){
     catch(e){if(a===2)throw e;await new Promise(s=>setTimeout(s,800*(a+1)));}}}
 const EX={
   bybit:{name:"Bybit",TF:{"5m":"5","15m":"15","1h":"60","4h":"240","1d":"D"},
-    async universe(n){const d=await getJSON("https://api.bybit.com/v5/market/tickers?category=linear");
-      return d.result.list.filter(r=>r.symbol.endsWith("USDT")&&!r.symbol.includes("-")&&!STABLES.some(s=>r.symbol.startsWith(s)))
-        .sort((a,b)=>(+b.turnover24h||0)-(+a.turnover24h||0)).slice(0,n).map(r=>r.symbol);},
+    async list(){const d=await getJSON("https://api.bybit.com/v5/market/tickers?category=linear");
+      return d.result.list.filter(r=>r.symbol.endsWith("USDT")&&!r.symbol.includes("-"))
+        .sort((a,b)=>(+b.turnover24h||0)-(+a.turnover24h||0)).map(r=>r.symbol);},
     async klines(s,tf,limit){const d=await getJSON(`https://api.bybit.com/v5/market/kline?category=linear&symbol=${s}&interval=${this.TF[tf]}&limit=${limit}`);
       if(d.retCode!==0)throw new Error(d.retMsg);
       return d.result.list.map(r=>[+r[0],+r[1],+r[2],+r[3],+r[4],+r[5]]).sort((a,b)=>a[0]-b[0]);}},
   binance:{name:"Binance",
-    async universe(n){const d=await getJSON("https://fapi.binance.com/fapi/v1/ticker/24hr");
-      return d.filter(r=>r.symbol.endsWith("USDT")&&!r.symbol.includes("_")&&!STABLES.some(s=>r.symbol.startsWith(s)))
-        .sort((a,b)=>+b.quoteVolume-+a.quoteVolume).slice(0,n).map(r=>r.symbol);},
+    async list(){const d=await getJSON("https://fapi.binance.com/fapi/v1/ticker/24hr");
+      return d.filter(r=>r.symbol.endsWith("USDT")&&!r.symbol.includes("_"))
+        .sort((a,b)=>+b.quoteVolume-+a.quoteVolume).map(r=>r.symbol);},
     async klines(s,tf,limit){const d=await getJSON(`https://fapi.binance.com/fapi/v1/klines?symbol=${s}&interval=${tf}&limit=${limit}`);
       return d.map(r=>[+r[0],+r[1],+r[2],+r[3],+r[4],+r[5]]);}}};
 
 // ------------------------------------------------------------- інтерфейс
 const $=id=>document.getElementById(id);
 const DEF={exchange:"auto",mode:"intraday",top:30,min:9,symbols:"",balance:1000,risk:1,loop:5,sound:"1"};
+const MK={crypto:1,fx:1,metals:1,idx:1,stocks:0};
 let cfg=Object.assign({},DEF);
 try{Object.assign(cfg,JSON.parse(localStorage.getItem("smc-cfg")||"{}"));}catch(e){}
+cfg.markets=Object.assign({},MK,cfg.markets||{});
+const save=()=>{try{localStorage.setItem("smc-cfg",JSON.stringify(cfg));}catch(e){}};
+document.querySelectorAll("#s-markets button").forEach(b=>{const g=b.dataset.g;
+  const paint=()=>{b.classList.toggle("on",!!cfg.markets[g]);b.setAttribute("aria-pressed",cfg.markets[g]?"true":"false");};
+  paint();b.addEventListener("click",()=>{cfg.markets[g]=cfg.markets[g]?0:1;paint();save();});});
 const seen=new Set();let timer=null,busy=false,lastBtc="";
 for(const k of Object.keys(DEF)){const el=$("s-"+k);el.value=cfg[k];
   el.addEventListener("change",()=>{cfg[k]=el.type==="number"?(+el.value||0):el.value;
-    try{localStorage.setItem("smc-cfg",JSON.stringify(cfg));}catch(e){}
-    if(k==="loop")schedule();});}
+    save();if(k==="loop")schedule();});}
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("act",x===b));
   ["setups","radar","settings"].forEach(v=>$("v-"+v).classList.toggle("act",v===b.dataset.v));}));
@@ -322,9 +349,9 @@ header();setInterval(header,20000);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const ST={ENTER:"Вхід зараз",WAIT:"Чекати лімітку"};
 function card(s){
-  const txt=`${s.symbol} ${s.dir}\nentry ${fmt(s.entry)} | SL ${fmt(s.sl)} | TP ${fmt(s.tp)} | RR ${s.rr.toFixed(1)}`;
+  const txt=`${nice(s.symbol)} ${s.dir}\nentry ${fmt(s.entry)} | SL ${fmt(s.sl)} | TP ${fmt(s.tp)} | RR ${s.rr.toFixed(1)}`;
   return `<article class="card ${s.dir}">
-  <div class="row"><div class="row"><span class="sym">${esc(s.symbol.replace("USDT",""))}</span><span class="dir">${s.dir}</span></div><span class="pill ${s.state}">${ST[s.state]}</span></div>
+  <div class="row"><div class="row"><span class="sym">${esc(nice(s.symbol))}</span><span class="dir">${s.dir}</span><span class="mk">${GNAME[s.group]||""}</span></div><span class="pill ${s.state}">${ST[s.state]}</span></div>
   <div class="grid"><div class="cell"><small>Вхід</small><b>${fmt(s.entry)}</b></div><div class="cell"><small>Стоп</small><b>${fmt(s.sl)}</b></div><div class="cell"><small>Тейк</small><b>${fmt(s.tp)}</b></div><div class="cell"><small>RR</small><b>${s.rr.toFixed(1)}</b></div></div>
   <div class="row"><span class="score">бал ${s.score} · клас ${s.tier} · ціна ${fmt(s.price)}</span><button class="copy" data-t="${esc(txt)}">Копіювати рівні</button></div>
   <details><summary>Чому і що робити</summary>
@@ -348,15 +375,21 @@ async function scan(){
     status("Підключаюсь до біржі…");
     const ex=await pickExchange();const tfs=MODES[cfg.mode];
     const a={tfs,balance:+cfg.balance||0,risk:+cfg.risk||1,lookback:80};
-    const syms=cfg.symbols.trim()?cfg.symbols.toUpperCase().split(/[\s,;]+/).filter(Boolean):await ex.universe(Math.max(5,Math.min(80,+cfg.top||30)));
+    let syms;
+    if(cfg.symbols.trim())syms=cfg.symbols.toUpperCase().split(/[\s,;]+/).filter(Boolean);
+    else{const all=await ex.list(),have=new Set(all),m=cfg.markets;syms=[];
+      if(m.crypto)syms.push(...all.filter(s=>!GROUP[s]&&!DUP.includes(s)&&!STABLES.some(x=>s.startsWith(x))).slice(0,Math.max(5,Math.min(150,+cfg.top||30))));
+      for(const g in TRAD)if(m[g])syms.push(...TRAD[g].filter(s=>have.has(s)));
+      if(!syms.length)throw new Error("не вибрано жодного ринку. Увімкни хоча б один у налаштуваннях.");}
     try{const [hb]=biasOf((await ex.klines("BTCUSDT",tfs[1],200)).slice(0,-1));
       lastBtc=`<span class="chip ${hb==="bull"?"bull":hb==="bear"?"bear":""}">BTC ${tfs[1].toUpperCase()}: ${hb==="bull"?"бичий":hb==="bear"?"ведмежий":"без тренду"}</span>`;header();}catch(e){}
-    const now=kyiv();const sigs=[];let done=0,flat=0,errs=0;
+    const now=kyiv();const sigs=[];let done=0,flat=0,errs=0,closed=0;
     await pool(syms,4,async s=>{
-      try{const h=await ex.klines(s,tfs[1],200);
-        if(h.length<60||biasOf(h.slice(0,-1))[0]==="flat")flat++;
-        else{const [ctx,ltf]=await Promise.all([ex.klines(s,tfs[0],120),ex.klines(s,tfs[2],300)]);
-          const r=analyze(s,ctx,h,ltf,now,a);if(r)sigs.push(r);}}
+      try{const raw=await ex.klines(s,tfs[1],200);const h=clean(raw);
+        if(GROUP[s]&&raw.length>2&&raw.slice(-2).every(c=>c[5]===0))closed++;
+        else if(h.length<60||biasOf(h.slice(0,-1))[0]==="flat")flat++;
+        else{const [ctx,ltf]=(await Promise.all([ex.klines(s,tfs[0],120),ex.klines(s,tfs[2],300)])).map(clean);
+          const r=ltf.length>=60&&ctx.length>=10?analyze(s,ctx,h,ltf,now,a):null;if(r){r.group=GROUP[s]||"crypto";sigs.push(r);}}}
       catch(e){errs++;}
       done++;$("prog").style.width=Math.round(done/syms.length*100)+"%";status(`Перевіряю ${done} з ${syms.length}…`);});
     if(errs===syms.length)throw new Error("жодна пара не завантажилась. Перевір список пар або мережу.");
@@ -364,13 +397,13 @@ async function scan(){
       .sort((x,y)=>(x.state===y.state?y.score-x.score:x.state==="ENTER"?-1:1));
     const watch=sigs.filter(s=>s.state==="WATCH");
     $("setups").innerHTML=acts.length?acts.map(card).join(""):`<div class="empty">Готових сетапів немає.<br>Це нормально: менше угод, краще.</div>`;
-    $("radar").innerHTML=watch.length?watch.map(s=>`<article class="card ${s.dir}"><div class="row"><div class="row"><span class="sym">${esc(s.symbol.replace("USDT",""))}</span><span class="dir">${s.dir}</span></div><span class="score">ціна ${fmt(s.price)}</span></div><div class="radar">${s.plan.map(x=>`<p>${esc(x)}</p>`).join("")}</div></article>`).join(""):`<div class="empty">На радарі порожньо.</div>`;
+    $("radar").innerHTML=watch.length?watch.map(s=>`<article class="card ${s.dir}"><div class="row"><div class="row"><span class="sym">${esc(nice(s.symbol))}</span><span class="dir">${s.dir}</span><span class="mk">${GNAME[s.group]||""}</span></div><span class="score">ціна ${fmt(s.price)}</span></div><div class="radar">${s.plan.map(x=>`<p>${esc(x)}</p>`).join("")}</div></article>`).join(""):`<div class="empty">На радарі порожньо.</div>`;
     $("n-setups").textContent=acts.length||"";$("n-radar").textContent=watch.length||"";
     const fresh=acts.filter(s=>!seen.has(s.id));fresh.forEach(s=>seen.add(s.id));
     if(fresh.length&&cfg.sound==="1")beep();
     document.title=(acts.length?`(${acts.length}) `:"")+"SMC Скрінер";
     const t=kyiv();
-    status(`${ex.name} · ${String(t.hour).padStart(2,"0")}:${String(t.min).padStart(2,"0")} · перевірено ${syms.length}, без тренду ${flat}`+(errs?`, помилок ${errs}`:"")+(fresh.length?` · нових сетапів: ${fresh.length}`:""));
+    status(`${ex.name} · ${String(t.hour).padStart(2,"0")}:${String(t.min).padStart(2,"0")} · перевірено ${syms.length}, без тренду ${flat}`+(closed?`, ринок закритий ${closed}`:"")+(errs?`, помилок ${errs}`:"")+(fresh.length?` · нових сетапів: ${fresh.length}`:""));
   }catch(e){status("Помилка: "+e.message,true);}
   busy=false;$("scanBtn").disabled=false;setTimeout(()=>{$("prog").style.width="0";},600);}
 function schedule(){if(timer)clearInterval(timer);timer=null;const m=+cfg.loop||0;if(m>0)timer=setInterval(scan,Math.max(1,m)*60000);}
