@@ -113,7 +113,7 @@ nav button em{font-style:normal;font:11px var(--mono);margin-left:4px;opacity:.8
           <button type="button" data-g="crypto">Крипта</button><button type="button" data-g="fx">Форекс</button><button type="button" data-g="metals">Метали</button><button type="button" data-g="idx">Індекси</button><button type="button" data-g="stocks">Акції</button>
         </div>
       </div>
-      <p class="note">Форекс: EURUSD, GBPUSD, USDJPY. Метали: золото, срібло. Індекси: Nasdaq (QQQ), S&P 500 (SPY), Russell (IWM). Це безстрокові контракти Bybit, ціна може трохи відрізнятись від брокера. На вихідних форекс закритий.</p>
+      <p class="note">Форекс: EURUSD, GBPUSD, USDJPY (Bybit), AUDUSD, USDCAD, USDCHF, EURCHF (Kraken). Метали: золото, срібло. Індекси: NAS100, GER40, SPX500, US30, UK100 (Gate). Джерело видно на картці. Це котирування крипто-бірж: ціна може на кілька пунктів відрізнятись від брокера, звіряй рівні на своєму графіку.</p>
       <div class="two">
         <label>Крипто-пар за обігом<input id="s-top" type="number" min="5" max="150" inputmode="numeric"></label>
         <label>Мін. бал<input id="s-min" type="number" min="0" max="20" inputmode="numeric"></label>
@@ -285,15 +285,27 @@ function analyze(sym,ctx,htf,ltf,now,a){
 // ---------------------------------------------------------------- біржі
 const STABLES=["USDC","FDUSD","TUSD","USDE","USD1","DAI"];
 // ринки поза криптою: безстрокові контракти на біржі (ціна йде за базовим активом)
-const TRAD={fx:["EURUSDUSDT","GBPUSDUSDT","USDJPYUSDT","USDBRLUSDT"],
+// K: = Kraken (форекс), G: = Gate (індекси); решта з основної біржі
+const TRAD={fx:["EURUSDUSDT","GBPUSDUSDT","USDJPYUSDT","K:AUDUSD","K:USDCAD","K:USDCHF","K:EURCHF"],
   metals:["XAUUSDT","XAGUSDT","XPTUSDT","XPDUSDT","COPPERUSDT"],
-  idx:["QQQUSDT","SPYUSDT","IWMUSDT"],
+  idx:["G:NAS100_USDT","G:GER40_USDT","G:SPX500_USDT","G:US30_USDT","G:UK100_USDT"],
   stocks:["NVDAUSDT","TSLAUSDT","AAPLUSDT","MSTRUSDT","GOOGLUSDT","AMZNUSDT","METAUSDT","COINUSDT","HOODUSDT","JPMUSDT","DELLUSDT"]};
 const GROUP={};for(const g in TRAD)TRAD[g].forEach(s=>GROUP[s]=g);
 const DUP=["XAUTUSDT","PAXGUSDT"]; // токени золота дублюють XAU
 const GNAME={crypto:"крипта",fx:"форекс",metals:"метали",idx:"індекси",stocks:"акції"};
-const NICE={XAUUSDT:"XAUUSD",XAGUSDT:"XAGUSD",XPTUSDT:"XPTUSD",XPDUSDT:"XPDUSD",COPPERUSDT:"COPPER",QQQUSDT:"QQQ · Nasdaq",SPYUSDT:"SPY · S&P 500",IWMUSDT:"IWM · Russell"};
-const nice=s=>NICE[s]||(GROUP[s]==="fx"?s.slice(0,-4):s.replace(/USDT$/,""));
+const NICE={XAUUSDT:"XAUUSD",XAGUSDT:"XAGUSD",XPTUSDT:"XPTUSD",XPDUSDT:"XPDUSD",COPPERUSDT:"COPPER","G:NAS100_USDT":"NAS100","G:GER40_USDT":"GER40","G:SPX500_USDT":"SPX500","G:US30_USDT":"US30","G:UK100_USDT":"UK100"};
+const nice=s=>NICE[s]||(s.startsWith("K:")?s.slice(2):GROUP[s]==="fx"?s.slice(0,-4):s.replace(/USDT$/,""));
+const KTF={"5m":5,"15m":15,"1h":60,"4h":240,"1d":1440};
+async function klAny(ex,s,tf,limit){
+  if(s.startsWith("K:")){const d=await getJSON(`https://api.kraken.com/0/public/OHLC?pair=${s.slice(2)}&interval=${KTF[tf]}`);
+    if(d.error&&d.error.length)throw new Error(d.error.join());
+    const k=Object.keys(d.result).find(x=>x!=="last");
+    return d.result[k].slice(-limit).map(r=>[r[0]*1000,+r[1],+r[2],+r[3],+r[4],+r[6]]);}
+  if(s.startsWith("G:")){const d=await getJSON(`https://api.gateio.ws/api/v4/futures/usdt/candlesticks?contract=${s.slice(2)}&interval=${tf}&limit=${limit}`);
+    if(!Array.isArray(d))throw new Error(d.message||"Gate");
+    return d.map(r=>[r.t*1000,+r.o,+r.h,+r.l,+r.c,+r.v]).sort((a,b)=>a[0]-b[0]);}
+  return ex.klines(s,tf,limit);}
+const srcOf=(s,ex)=>s.startsWith("K:")?"Kraken":s.startsWith("G:")?"Gate":ex.name;
 const clean=cs=>cs.filter(c=>!(c[5]===0&&c[2]===c[3]));
 async function getJSON(url){
   for(let a=0;a<3;a++){
@@ -351,7 +363,7 @@ const ST={ENTER:"Вхід зараз",WAIT:"Чекати лімітку"};
 function card(s){
   const txt=`${nice(s.symbol)} ${s.dir}\nentry ${fmt(s.entry)} | SL ${fmt(s.sl)} | TP ${fmt(s.tp)} | RR ${s.rr.toFixed(1)}`;
   return `<article class="card ${s.dir}">
-  <div class="row"><div class="row"><span class="sym">${esc(nice(s.symbol))}</span><span class="dir">${s.dir}</span><span class="mk">${GNAME[s.group]||""}</span></div><span class="pill ${s.state}">${ST[s.state]}</span></div>
+  <div class="row"><div class="row"><span class="sym">${esc(nice(s.symbol))}</span><span class="dir">${s.dir}</span><span class="mk">${GNAME[s.group]||""} · ${esc(s.src||"")}</span></div><span class="pill ${s.state}">${ST[s.state]}</span></div>
   <div class="grid"><div class="cell"><small>Вхід</small><b>${fmt(s.entry)}</b></div><div class="cell"><small>Стоп</small><b>${fmt(s.sl)}</b></div><div class="cell"><small>Тейк</small><b>${fmt(s.tp)}</b></div><div class="cell"><small>RR</small><b>${s.rr.toFixed(1)}</b></div></div>
   <div class="row"><span class="score">бал ${s.score} · клас ${s.tier} · ціна ${fmt(s.price)}</span><button class="copy" data-t="${esc(txt)}">Копіювати рівні</button></div>
   <details><summary>Чому і що робити</summary>
@@ -379,17 +391,17 @@ async function scan(){
     if(cfg.symbols.trim())syms=cfg.symbols.toUpperCase().split(/[\s,;]+/).filter(Boolean);
     else{const all=await ex.list(),have=new Set(all),m=cfg.markets;syms=[];
       if(m.crypto)syms.push(...all.filter(s=>!GROUP[s]&&!DUP.includes(s)&&!STABLES.some(x=>s.startsWith(x))).slice(0,Math.max(5,Math.min(150,+cfg.top||30))));
-      for(const g in TRAD)if(m[g])syms.push(...TRAD[g].filter(s=>have.has(s)));
+      for(const g in TRAD)if(m[g])syms.push(...TRAD[g].filter(s=>s[1]===":"||have.has(s)));
       if(!syms.length)throw new Error("не вибрано жодного ринку. Увімкни хоча б один у налаштуваннях.");}
     try{const [hb]=biasOf((await ex.klines("BTCUSDT",tfs[1],200)).slice(0,-1));
       lastBtc=`<span class="chip ${hb==="bull"?"bull":hb==="bear"?"bear":""}">BTC ${tfs[1].toUpperCase()}: ${hb==="bull"?"бичий":hb==="bear"?"ведмежий":"без тренду"}</span>`;header();}catch(e){}
     const now=kyiv();const sigs=[];let done=0,flat=0,errs=0,closed=0;
     await pool(syms,4,async s=>{
-      try{const raw=await ex.klines(s,tfs[1],200);const h=clean(raw);
+      try{const raw=await klAny(ex,s,tfs[1],200);const h=clean(raw);
         if(GROUP[s]&&raw.length>2&&raw.slice(-2).every(c=>c[5]===0))closed++;
         else if(h.length<60||biasOf(h.slice(0,-1))[0]==="flat")flat++;
-        else{const [ctx,ltf]=(await Promise.all([ex.klines(s,tfs[0],120),ex.klines(s,tfs[2],300)])).map(clean);
-          const r=ltf.length>=60&&ctx.length>=10?analyze(s,ctx,h,ltf,now,a):null;if(r){r.group=GROUP[s]||"crypto";sigs.push(r);}}}
+        else{const [ctx,ltf]=(await Promise.all([klAny(ex,s,tfs[0],120),klAny(ex,s,tfs[2],300)])).map(clean);
+          const r=ltf.length>=60&&ctx.length>=10?analyze(s,ctx,h,ltf,now,a):null;if(r){r.group=GROUP[s]||"crypto";r.src=srcOf(s,ex);sigs.push(r);}}}
       catch(e){errs++;}
       done++;$("prog").style.width=Math.round(done/syms.length*100)+"%";status(`Перевіряю ${done} з ${syms.length}…`);});
     if(errs===syms.length)throw new Error("жодна пара не завантажилась. Перевір список пар або мережу.");
@@ -397,7 +409,7 @@ async function scan(){
       .sort((x,y)=>(x.state===y.state?y.score-x.score:x.state==="ENTER"?-1:1));
     const watch=sigs.filter(s=>s.state==="WATCH");
     $("setups").innerHTML=acts.length?acts.map(card).join(""):`<div class="empty">Готових сетапів немає.<br>Це нормально: менше угод, краще.</div>`;
-    $("radar").innerHTML=watch.length?watch.map(s=>`<article class="card ${s.dir}"><div class="row"><div class="row"><span class="sym">${esc(nice(s.symbol))}</span><span class="dir">${s.dir}</span><span class="mk">${GNAME[s.group]||""}</span></div><span class="score">ціна ${fmt(s.price)}</span></div><div class="radar">${s.plan.map(x=>`<p>${esc(x)}</p>`).join("")}</div></article>`).join(""):`<div class="empty">На радарі порожньо.</div>`;
+    $("radar").innerHTML=watch.length?watch.map(s=>`<article class="card ${s.dir}"><div class="row"><div class="row"><span class="sym">${esc(nice(s.symbol))}</span><span class="dir">${s.dir}</span><span class="mk">${GNAME[s.group]||""} · ${esc(s.src||"")}</span></div><span class="score">ціна ${fmt(s.price)}</span></div><div class="radar">${s.plan.map(x=>`<p>${esc(x)}</p>`).join("")}</div></article>`).join(""):`<div class="empty">На радарі порожньо.</div>`;
     $("n-setups").textContent=acts.length||"";$("n-radar").textContent=watch.length||"";
     const fresh=acts.filter(s=>!seen.has(s.id));fresh.forEach(s=>seen.add(s.id));
     if(fresh.length&&cfg.sound==="1")beep();
