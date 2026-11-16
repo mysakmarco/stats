@@ -243,7 +243,8 @@ function compute(){
   const days=+S.days||0, from=days>0?last-days*DAY:-Infinity;
   const smin=+(S.spike[TAB]??spikeDef(TAB)), smax=+(S['smax_'+TAB]||0);
   const q=(document.getElementById('coinq').value||'').trim().toUpperCase();
-  const ev=all.filter(e=>e.t>=from && e.sp>=smin && (!(smax>0)||e.sp<smax) && (S.side==='all'||e.side===S.side));
+  const levSel=((S.lev||{})[TAB]||[]).map(String); const levSet=new Set(levSel);
+  const ev=all.filter(e=>e.t>=from && e.sp>=smin && (!(smax>0)||e.sp<smax) && (S.side==='all'||e.side===S.side) && (!levSet.size||levSet.has(String(e.lev))));
   return {c,last,from,days,smin,smax,ev,q};
 }
 
@@ -267,11 +268,12 @@ function render(){
   // ранг за score (від найкращої до найгіршої)
   rows.sort((a,b)=>b.m.score-a.m.score); rows.forEach((r,i)=>r.rank=i+1);
 
+  buildLevButtons(c.ev);
   // підсумок
   const spikeTxt=(smax>0?`${smin}–${smax}%`:`від ${smin}%`).replace(/\./g,',');
   document.getElementById('sum').innerHTML=
     `<b>${esc(TAB)}</b> · спайки <b>${spikeTxt}</b> · ${days>0?`<b>${days} дн.</b>: ${fDT(from)} — ${fDT(last)}`:`<b>весь період</b>: ${n?fDT(first):'—'} — ${fDT(last)}`}`+
-    ` · відлік від останньої події у файлі${S.side!=='all'?` · сторона <b>${S.side}</b>`:''}<br>`+
+    ` · відлік від останньої події у файлі${S.side!=='all'?` · сторона <b>${S.side}</b>`:''}${((S.lev||{})[TAB]||[]).length?` · плече <b>${(S.lev[TAB]).map(x=>x+'x').join(', ')}</b>`:''}<br>`+
     `<span class="note">Очистка: дані з ${esc(S.dateFrom)}; вирізано ${c.rmCut} подій (${esc(S.cutFrom)} — ${esc(S.cutTo)}); виключено ${c.rmEx} рядків монет (${esc(S.exclude)}); старіших за дату — ${c.rmOld}; нерозпізнаних — ${c.bad}.</span>`;
   // таблиця монет
   const q=R.q; let view=rows.filter(r=>!q||r.coin.toUpperCase().includes(q));
@@ -439,6 +441,16 @@ function toast(t){ const el=document.getElementById('toast'); el.textContent=t; 
 function buttons(id,items,cur,onPick){
   const box=document.getElementById(id); box.querySelectorAll('button').forEach(b=>b.remove());
   for(const [v,t] of items){ const b=document.createElement('button'); b.textContent=t; if(String(v)===String(cur)) b.classList.add('on'); b.onclick=()=>onPick(v); box.appendChild(b); }
+}
+function buildLevButtons(all){
+  const box=document.getElementById('levs'); if(!box) return;
+  const cnt=new Map(); for(const e of all){ const k=String(e.lev||'?'); cnt.set(k,(cnt.get(k)||0)+1); }
+  const levs=[...cnt.keys()].sort((a,b)=>(+a||1e9)-(+b||1e9));
+  S.lev=S.lev||{}; const sel=new Set((S.lev[TAB]||[]).map(String).filter(x=>cnt.has(x)));
+  box.querySelectorAll('button').forEach(b=>b.remove());
+  const mk=(txt,on,fn,title)=>{ const b=document.createElement('button'); b.textContent=txt; if(on) b.classList.add('on'); if(title) b.title=title; b.onclick=fn; box.appendChild(b); };
+  mk('Всі',!sel.size,()=>{ S.lev[TAB]=[]; saveSettings(); render(); });
+  for(const k of levs) mk(k+'x',sel.has(k),()=>{ const s2=new Set(sel); s2.has(k)?s2.delete(k):s2.add(k); S.lev[TAB]=[...s2]; saveSettings(); render(); },'подій за весь файл: '+cnt.get(k)+' · можна вибрати кілька');
 }
 function syncControls(){
   document.getElementById('smin').value=S.spike[TAB]??spikeDef(TAB);
