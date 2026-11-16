@@ -71,6 +71,14 @@ summary{cursor:pointer;font-weight:600}
 th.xm,td.xm{color:#b9c3d6}
 #coins td:nth-child(2),#coins th:nth-child(2){position:sticky;left:0;background:var(--panel);z-index:1}
 #coins th:nth-child(2){background:var(--panel2);z-index:2}
+#gear{position:fixed;right:22px;bottom:22px;width:48px;height:48px;border-radius:50%;font-size:22px;line-height:1;padding:0;background:var(--panel2);border:1px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.4);z-index:8}
+#gear:hover{border-color:var(--acc)}
+#colpanel{position:fixed;top:0;right:0;bottom:0;width:320px;max-width:90vw;background:var(--panel);border-left:1px solid var(--line);padding:16px 16px 80px;overflow:auto;z-index:9;transform:translateX(105%);transition:transform .2s}
+#colpanel.open{transform:none}
+.cp-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.cp-h button{padding:3px 8px;font-size:12px}
+.cp-list{display:flex;flex-direction:column;gap:4px}
+.cp-list .xchk{font-size:13.5px;color:var(--text)}
 </style>
 </head>
 <body>
@@ -134,10 +142,6 @@ th.xm,td.xm{color:#b9c3d6}
         <h2 id="toptitle">Топ-лист</h2>
         <div class="grp"><button id="copymd">Копіювати таблицю (Markdown)</button></div>
       </div>
-      <details id="xpick" style="display:none;margin:0 0 8px;padding:8px 12px"><summary>Доп. метрики в таблиці: <span id="xcount"></span> <span class="muted" style="font-weight:400">(значення — медіана по подіях монети)</span></summary>
-        <div style="margin:8px 0;display:flex;gap:6px"><button id="xall">Всі</button><button id="xnone">Жодної</button></div>
-        <div id="xlist" style="display:flex;flex-wrap:wrap;gap:4px 14px"></div>
-      </details>
       <div class="tw"><table id="coins"></table></div>
       <div class="note" id="coinnote"></div>
     </section>
@@ -162,10 +166,20 @@ th.xm,td.xm{color:#b9c3d6}
   </div>
 </main>
 <div id="modal"><div class="box" id="mbox"></div></div>
+<button id="gear" title="Колонки таблиці">⚙</button>
+<div id="colpanel">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:15px">Колонки таблиці</b><button id="cp-close">✕</button></div>
+  <div class="muted" id="cp-count" style="font-size:12px;margin-bottom:12px"></div>
+  <div class="cp-h"><b>Основні</b><span><button id="cp-main-all">Всі</button> <button id="cp-main-none">Жодної</button></span></div>
+  <div id="cp-main" class="cp-list"></div>
+  <div class="cp-h" style="margin-top:16px"><b>Доп. метрики</b><span><button id="cp-x-all">Всі</button> <button id="cp-x-none">Жодної</button></span></div>
+  <div class="muted" style="font-size:12px;margin:-4px 0 6px">значення — медіана по подіях монети; вибір окремо для кожної вкладки</div>
+  <div id="cp-x" class="cp-list"></div>
+</div>
 <div class="toast" id="toast">Скопійовано</div>
 
 </div>
 <script src="config.js?v=20261116b"></script>
-<script src="app.js?v=20261116c"></script>
+<script src="app.js?v=20261116d"></script>
 </body>
 </html>

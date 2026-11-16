@@ -296,12 +296,23 @@ function render(){
     [white.length+' / '+edge.length+' / '+black.length,'топ / на межі / blacklist']
   ].map(([v,l])=>`<div class="card"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('')+
   (nSel<n?`<div class="card" style="opacity:.75"><div class="v">${n} / ${coinsAll.size}</div><div class="l">усього подій / монет за період</div></div>`:'');
-  const cols=[['rank','#'],['coin','Монета','l'],['n','N'],['med','Медіана'],['cv','CV'],['neg','<0%'],['g0','≥0%'],['g19','≥'+S.good+'%'],['g35','≥35%'],['g50','≥50%'],['min','Мін.'],['e','E'],['L','Long'],['S','Short'],['lev','Плече'],['st','Статус','l']].concat(XS.map(c=>['x'+XALL.indexOf(c),c.label,'xm']));
   const sd=(x)=>x?`${Math.round(100*x.k/x.n)}% (${x.n})`:'—';
+  const MAIN=mainCols();
+  const hid=new Set(S.hideCols||[]);
+  const cell={
+    rank:r=>`<td>${r.rank}</td>`, coin:r=>`<td class="l"><b>${esc(short(r.coin))}</b></td>`, n:r=>`<td>${r.m.n}</td>`,
+    med:r=>`<td>${p1(r.m.med)}</td>`, cv:r=>`<td>${cvs(r.m.cv)}</td>`, neg:r=>`<td class="${r.m.neg?'neg':''}">${P(r.m.neg,r.m.n)}</td>`,
+    g0:r=>`<td>${P(r.m.g0,r.m.n)}</td>`, g19:r=>`<td>${P(r.m.g19,r.m.n)}</td>`, g35:r=>`<td>${P(r.m.g35,r.m.n)}</td>`, g50:r=>`<td>${P(r.m.g50,r.m.n)}</td>`,
+    min:r=>`<td class="${r.m.min<0?'neg':'pos'}">${sg(r.m.min)}</td>`, e:r=>`<td class="${r.m.e<0?'neg':''}">${sg2(r.m.e)}</td>`,
+    L:r=>`<td>${sd(r.L)}</td>`, S:r=>`<td>${sd(r.S)}</td>`, lev:r=>`<td>${esc(r.lev)}</td>`,
+    st:r=>`<td class="l"><span class="st ${r.st}">${STN[r.st]}</span>${r.m.n<10?' <span class="muted" title="мала вибірка">мало</span>':''}</td>`
+  };
+  XS.forEach(c=>{ const j=XALL.indexOf(c); cell['x'+j]=r=>{ const v=r.xs?r.xs[j]:null; return `<td class="${c.pct&&v<0?'neg':''}">${fx(v,c.pct)}</td>`; }; });
+  const cols=MAIN.filter(([k,,,fixed])=>fixed||!hid.has(k)).concat(XS.map(c=>['x'+XALL.indexOf(c),c.label,'xm']));
   document.getElementById('coins').innerHTML=
     `<thead><tr>${cols.map(([k,t,cl])=>`<th class="${cl||''} ${sortKey===k?'sorted':''}" data-k="${k}"${cl==='xm'?' title="медіана по подіях монети"':''}>${t}${sortKey===k?(sortDir<0?' ↓':' ↑'):''}</th>`).join('')}</tr></thead><tbody>`+
-    shown.map(r=>`<tr class="click" data-c="${esc(r.coin)}"><td>${r.rank}</td><td class="l"><b>${esc(short(r.coin))}</b></td><td>${r.m.n}</td><td>${p1(r.m.med)}</td><td>${cvs(r.m.cv)}</td><td class="${r.m.neg?'neg':''}">${P(r.m.neg,r.m.n)}</td><td>${P(r.m.g0,r.m.n)}</td><td>${P(r.m.g19,r.m.n)}</td><td>${P(r.m.g35,r.m.n)}</td><td>${P(r.m.g50,r.m.n)}</td><td class="${r.m.min<0?'neg':'pos'}">${sg(r.m.min)}</td><td class="${r.m.e<0?'neg':''}">${sg2(r.m.e)}</td><td>${sd(r.L)}</td><td>${sd(r.S)}</td><td>${esc(r.lev)}</td><td class="l"><span class="st ${r.st}">${STN[r.st]}</span>${r.m.n<10?' <span class="muted" title="мала вибірка">мало</span>':''}</td>${XS.map(c=>{const j=XALL.indexOf(c); const v=r.xs?r.xs[j]:null; return `<td class="${c.pct&&v<0?'neg':''}">${fx(v,c.pct)}</td>`;}).join('')}</tr>`).join('')+'</tbody>';
-  buildXPicker();
+    shown.map(r=>`<tr class="click" data-c="${esc(r.coin)}">${cols.map(([k])=>cell[k](r)).join('')}</tr>`).join('')+'</tbody>';
+  buildColPanel();
   document.querySelectorAll('#coins th').forEach(th=>th.onclick=()=>{const k=th.dataset.k; if(k==='lev')return; if(sortKey===k) sortDir=-sortDir; else {sortKey=k; sortDir=(k==='coin'||k==='rank'||k==='cv'||k==='neg'||k==='st')?1:-1;} render();});
   document.querySelectorAll('#coins tr.click').forEach(tr=>tr.onclick=()=>coinModal(tr.dataset.c));
   const small=shown.filter(r=>r.m.n<10&&(r.st==='top'||r.st==='edge')).map(r=>short(r.coin));
@@ -386,20 +397,29 @@ function coinModal(coin){
   };
 }
 
-function buildXPicker(){
-  const box=document.getElementById('xpick'); if(!box) return;
-  const all=(CACHE[TAB]&&CACHE[TAB].xcols)||[];
-  if(!all.length){ box.style.display='none'; return; }
-  box.style.display='';
-  const sel=new Set(xSel().map(c=>c.label));
-  const setSel=arr=>{ S.xcols=S.xcols||{}; S.xcols[TAB]=arr; saveSettings(); render(); };
-  document.getElementById('xcount').textContent=`${sel.size} з ${all.length}`;
-  const list=document.getElementById('xlist');
-  list.innerHTML=all.map(c=>`<label class="xchk"><input type="checkbox" data-l="${esc(c.label)}" ${sel.has(c.label)?'checked':''}> ${esc(c.label)}</label>`).join('');
-  list.querySelectorAll('input').forEach(inp=>inp.onchange=()=>setSel([...list.querySelectorAll('input:checked')].map(i=>i.dataset.l)));
-  document.getElementById('xall').onclick=()=>setSel(all.map(c=>c.label));
-  document.getElementById('xnone').onclick=()=>setSel([]);
+function mainCols(){
+  // [ключ, назва, клас, завжди видима]
+  return [['rank','#','',true],['coin','Монета','l',true],['n','N'],['med','Медіана'],['cv','CV'],['neg','<0%'],['g0','≥0%'],['g19','≥'+S.good+'%'],['g35','≥35%'],['g50','≥50%'],['min','Мін.'],['e','E'],['L','Long'],['S','Short'],['lev','Плече'],['st','Статус','l']];
 }
+function buildColPanel(){
+  const box=document.getElementById('colpanel'); if(!box||!CACHE[TAB]) return;
+  const hid=new Set(S.hideCols||[]);
+  const all=CACHE[TAB].xcols||[]; const xsel=new Set(xSel().map(c=>c.label));
+  const main=mainCols().filter(c=>!c[3]);
+  const setMain=arr=>{ S.hideCols=arr; saveSettings(); render(); };
+  const setX=arr=>{ S.xcols=S.xcols||{}; S.xcols[TAB]=arr; saveSettings(); render(); };
+  box.querySelector('#cp-main').innerHTML=main.map(([k,t])=>`<label class="xchk"><input type="checkbox" data-k="${k}" ${hid.has(k)?'':'checked'}> ${esc(t)}</label>`).join('');
+  box.querySelector('#cp-x').innerHTML=all.length?all.map(c=>`<label class="xchk"><input type="checkbox" data-l="${esc(c.label)}" ${xsel.has(c.label)?'checked':''}> ${esc(c.label)}</label>`).join(''):'<span class="muted">На цій вкладці додаткових метрик немає.</span>';
+  box.querySelector('#cp-count').textContent=`${main.length-main.filter(c=>hid.has(c[0])).length+xsel.size} з ${main.length+all.length} увімкнено`;
+  box.querySelectorAll('#cp-main input').forEach(inp=>inp.onchange=()=>setMain([...box.querySelectorAll('#cp-main input:not(:checked)')].map(i=>i.dataset.k)));
+  box.querySelectorAll('#cp-x input').forEach(inp=>inp.onchange=()=>setX([...box.querySelectorAll('#cp-x input:checked')].map(i=>i.dataset.l)));
+  box.querySelector('#cp-main-all').onclick=()=>setMain([]);
+  box.querySelector('#cp-main-none').onclick=()=>setMain(main.map(c=>c[0]));
+  box.querySelector('#cp-x-all').onclick=()=>setX(all.map(c=>c.label));
+  box.querySelector('#cp-x-none').onclick=()=>setX([]);
+}
+document.getElementById('gear').onclick=()=>{ const p=document.getElementById('colpanel'); const open=p.classList.toggle('open'); if(open) buildColPanel(); };
+document.getElementById('cp-close').onclick=()=>document.getElementById('colpanel').classList.remove('open');
 function copyMarkdown(){
   const trs=[...document.querySelectorAll('#coins tbody tr')];
   const ths=[...document.querySelectorAll('#coins thead th')].map(th=>th.textContent.replace(/[↓↑]/g,'').trim());
