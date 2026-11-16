@@ -91,6 +91,10 @@ th.xm,td.xm{color:#b9c3d6}
 #coins th{font-size:12.5px;letter-spacing:.2px}
 #coins td.neg{color:var(--bad)}#coins td.pos{color:var(--good)}
 .tw:has(> #coins){display:inline-block;max-width:100%}
+
+/* вертикальні розділювачі колонок */
+#coins th+th,#coins td+td{border-left:1px solid #2f3542}
+#coins td:nth-child(2),#coins th:nth-child(2){box-shadow:inset -1px 0 0 #3a4150}
 </style>
 </head>
 <body>
@@ -192,6 +196,6 @@ th.xm,td.xm{color:#b9c3d6}
 
 </div>
 <script src="config.js?v=20261116b"></script>
-<script src="app.js?v=20261116g"></script>
+<script src="app.js?v=20261116h"></script>
 </body>
 </html>
