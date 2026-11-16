@@ -275,7 +275,7 @@ function render(){
     `<span class="note">Очистка: дані з ${esc(S.dateFrom)}; вирізано ${c.rmCut} подій (${esc(S.cutFrom)} — ${esc(S.cutTo)}); виключено ${c.rmEx} рядків монет (${esc(S.exclude)}); старіших за дату — ${c.rmOld}; нерозпізнаних — ${c.bad}.</span>`;
   // таблиця монет
   const q=R.q; let view=rows.filter(r=>!q||r.coin.toUpperCase().includes(q));
-  const keyf={rank:r=>r.rank,coin:r=>r.coin,n:r=>r.m.n,med:r=>r.m.med,cv:r=>r.m.cv??99,g0:r=>r.m.g0/r.m.n,g19:r=>r.m.g19/r.m.n,g35:r=>r.m.g35/r.m.n,g50:r=>r.m.g50/r.m.n,neg:r=>r.m.neg/r.m.n,min:r=>r.m.min,e:r=>r.m.e,score:r=>r.m.score,L:r=>r.L?r.L.k/r.L.n:-1,S:r=>r.S?r.S.k/r.S.n:-1,st:r=>({top:0,edge:1,mid:2,bl:3})[r.st]};
+  const keyf={rank:r=>r.rank,coin:r=>r.coin,n:r=>r.m.n,med:r=>r.m.med,cv:r=>r.m.cv??99,g0:r=>r.m.g0/r.m.n,g19:r=>r.m.g19/r.m.n,g35:r=>r.m.g35/r.m.n,g50:r=>r.m.g50/r.m.n,neg:r=>r.m.neg/r.m.n,min:r=>r.m.min,e:r=>r.m.e,score:r=>r.m.score,L:r=>(r.L?r.L.n:0)/r.m.n,S:r=>(r.S?r.S.n:0)/r.m.n,st:r=>({top:0,edge:1,mid:2,bl:3})[r.st]};
   const XS=xSel(), XALL=(CACHE[TAB].xcols||[]);
   XS.forEach(c=>{ const j=XALL.indexOf(c); keyf['x'+j]=r=>r.xs&&r.xs[j]!=null?r.xs[j]:(sortDir<0?-Infinity:Infinity); });
   const kf=keyf[sortKey]||keyf.score;
@@ -297,6 +297,7 @@ function render(){
   ].map(([v,l])=>`<div class="card"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('')+
   (nSel<n?`<div class="card" style="opacity:.75"><div class="v">${n} / ${coinsAll.size}</div><div class="l">усього подій / монет за період</div></div>`:'');
   const sd=(x)=>x?`${Math.round(100*x.k/x.n)}% (${x.n})`:'—';
+  const ls=(x,n)=>{ const k=x?x.n:0; return `${Math.round(100*k/n)}% (${k})`; };
   const MAIN=mainCols();
   const hid=new Set(S.hideCols||[]);
   const cell={
@@ -304,7 +305,7 @@ function render(){
     med:r=>`<td>${p1(r.m.med)}</td>`, cv:r=>`<td>${cvs(r.m.cv)}</td>`, neg:r=>`<td class="${r.m.neg?'neg':''}">${P(r.m.neg,r.m.n)}</td>`,
     g0:r=>`<td>${P(r.m.g0,r.m.n)}</td>`, g19:r=>`<td>${P(r.m.g19,r.m.n)}</td>`, g35:r=>`<td>${P(r.m.g35,r.m.n)}</td>`, g50:r=>`<td>${P(r.m.g50,r.m.n)}</td>`,
     min:r=>`<td class="${r.m.min<0?'neg':'pos'}">${sg(r.m.min)}</td>`, e:r=>`<td class="${r.m.e<0?'neg':''}">${sg2(r.m.e)}</td>`,
-    L:r=>`<td>${sd(r.L)}</td>`, S:r=>`<td>${sd(r.S)}</td>`, lev:r=>`<td>${esc(r.lev)}</td>`,
+    L:r=>`<td title="${r.L?'≥'+S.good+'% на Long: '+sd(r.L):''}">${ls(r.L,r.m.n)}</td>`, S:r=>`<td title="${r.S?'≥'+S.good+'% на Short: '+sd(r.S):''}">${ls(r.S,r.m.n)}</td>`, lev:r=>`<td>${esc(r.lev)}</td>`,
     st:r=>`<td class="l"><span class="st ${r.st}">${STN[r.st]}</span>${r.m.n<10?' <span class="muted" title="мала вибірка">мало</span>':''}</td>`
   };
   XS.forEach(c=>{ const j=XALL.indexOf(c); cell['x'+j]=r=>{ const v=r.xs?r.xs[j]:null; return `<td class="${c.pct&&v<0?'neg':''}">${fx(v,c.pct)}</td>`; }; });
@@ -399,7 +400,7 @@ function coinModal(coin){
 
 function mainCols(){
   // [ключ, назва, клас, завжди видима]
-  return [['rank','#','',true],['coin','Монета','l',true],['n','N'],['med','Медіана'],['cv','CV'],['neg','<0%'],['g0','≥0%'],['g19','≥'+S.good+'%'],['g35','≥35%'],['g50','≥50%'],['min','Мін.'],['e','E'],['L','Long'],['S','Short'],['lev','Плече'],['st','Статус','l']];
+  return [['rank','#','',true],['coin','Монета','l',true],['n','N'],['med','Медіана'],['cv','CV'],['neg','<0%'],['g0','≥0%'],['g19','≥'+S.good+'%'],['g35','≥35%'],['g50','≥50%'],['min','Мін.'],['e','E'],['L','Long %'],['S','Short %'],['lev','Плече'],['st','Статус','l']];
 }
 function buildColPanel(){
   const box=document.getElementById('colpanel'); if(!box||!CACHE[TAB]) return;
