@@ -79,6 +79,18 @@ th.xm,td.xm{color:#b9c3d6}
 .cp-h button{padding:3px 8px;font-size:12px}
 .cp-list{display:flex;flex-direction:column;gap:4px}
 .cp-list .xchk{font-size:13.5px;color:var(--text)}
+
+/* компактна, чітка таблиця монет */
+#coins{width:auto;min-width:0;font-size:13.5px}
+#coins th,#coins td{padding:5px 10px;text-align:right}
+#coins th.l,#coins td.l{text-align:left}
+#coins tbody tr:nth-child(even) td{background:rgba(255,255,255,.025)}
+#coins tbody tr:hover td{background:#1f2430}
+#coins td{color:#e9ecf1;-webkit-font-smoothing:antialiased}
+#coins td:nth-child(2),#coins th:nth-child(2){background:var(--panel)!important;box-shadow:inset -1px 0 0 var(--line)}
+#coins th{font-size:12.5px;letter-spacing:.2px}
+#coins td.neg{color:var(--bad)}#coins td.pos{color:var(--good)}
+.tw:has(> #coins){display:inline-block;max-width:100%}
 </style>
 </head>
 <body>
@@ -180,6 +192,6 @@ th.xm,td.xm{color:#b9c3d6}
 
 </div>
 <script src="config.js?v=20261116b"></script>
-<script src="app.js?v=20261116f"></script>
+<script src="app.js?v=20261116g"></script>
 </body>
 </html>
