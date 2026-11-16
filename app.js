@@ -268,7 +268,11 @@ function render(){
   const keyf={rank:r=>r.rank,coin:r=>r.coin,n:r=>r.m.n,med:r=>r.m.med,cv:r=>r.m.cv??99,g0:r=>r.m.g0/r.m.n,g19:r=>r.m.g19/r.m.n,g35:r=>r.m.g35/r.m.n,g50:r=>r.m.g50/r.m.n,neg:r=>r.m.neg/r.m.n,min:r=>r.m.min,e:r=>r.m.e,score:r=>r.m.score,L:r=>r.L?r.L.k/r.L.n:-1,S:r=>r.S?r.S.k/r.S.n:-1,st:r=>({top:0,edge:1,mid:2,bl:3})[r.st]};
   const kf=keyf[sortKey]||keyf.score;
   view.sort((a,b)=>{const x=kf(a),y=kf(b); return (x<y?-1:x>y?1:0)*sortDir || a.rank-b.rank;});
-  const topN=+S.top||0; const shown=topN>0?view.slice(0,topN):view;
+  // кнопки «Топ N» лише ті, що менші за кількість монет у періоді; інакше — «Всі»
+  const nAll=rows.length;
+  const topN=(+S.top>0&&+S.top<nAll)?+S.top:0;
+  buttons('tops',TOPS.filter(([v])=>v===0||v<nAll),topN,v=>{S.top=v;saveSettings();render();});
+  const shown=topN>0?view.slice(0,topN):view;
   document.getElementById('toptitle').textContent=`Топ-лист${topN?' — топ '+topN:''} (${shown.length} з ${rows.length} монет)`;
   const cols=[['rank','#'],['coin','Монета','l'],['n','N'],['med','Медіана'],['cv','CV'],['neg','<0%'],['g0','≥0%'],['g19','≥'+S.good+'%'],['g35','≥35%'],['g50','≥50%'],['min','Мін.'],['e','E'],['L','Long'],['S','Short'],['lev','Плече'],['st','Статус','l']];
   const sd=(x)=>x?`${Math.round(100*x.k/x.n)}% (${x.n})`:'—';
