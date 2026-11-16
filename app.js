@@ -400,7 +400,7 @@ function coinModal(coin){
 
 function mainCols(){
   // [ключ, назва, клас, завжди видима]
-  return [['rank','#','',true],['coin','Монета','l',true],['n','N'],['med','Медіана'],['cv','CV'],['neg','<0%'],['g0','≥0%'],['g19','≥'+S.good+'%'],['g35','≥35%'],['g50','≥50%'],['min','Мін.'],['e','E'],['L','Long %'],['S','Short %'],['lev','Плече'],['st','Статус','l']];
+  return [['rank','#','',true],['coin','Монета','l',true],['lev','Плече'],['n','N'],['med','Медіана'],['cv','CV'],['neg','<0%'],['g0','≥0%'],['g19','≥'+S.good+'%'],['g35','≥35%'],['g50','≥50%'],['min','Мін.'],['e','E'],['L','Long %'],['S','Short %'],['st','Статус','l']];
 }
 function buildColPanel(){
   const box=document.getElementById('colpanel'); if(!box||!CACHE[TAB]) return;
