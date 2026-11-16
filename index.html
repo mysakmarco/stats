@@ -105,8 +105,14 @@ th.xm,td.xm{color:#b9c3d6}
 .ctl .grp>label{min-width:58px;color:var(--muted)}
 .ctl .grp button{padding:5px 11px;min-width:40px}
 .ctl input[type=number]{width:64px}
-#dslider{width:260px;accent-color:var(--acc)}
+#dslider{width:380px;accent-color:var(--acc)}
 #dlabel{min-width:60px;font-weight:600}
+
+.dsl-wrap{position:relative;display:inline-block;padding-bottom:16px}
+#dmarks{position:absolute;left:8px;right:8px;bottom:0;height:14px;font-size:10.5px;color:#7d8597}
+#dmarks span{position:absolute;transform:translateX(-50%);cursor:pointer;white-space:nowrap}
+#dmarks span:hover{color:var(--text)}
+#dmarks span.on{color:var(--acc);font-weight:600}
 </style>
 </head>
 <body>
@@ -156,7 +162,7 @@ th.xm,td.xm{color:#b9c3d6}
         <div class="ctl-sec">Дані</div>
         <div class="grp"><label>Спайк</label><span class="muted">від</span><input id="smin" type="number" step="0.5" min="0"><span class="muted">до</span><input id="smax" type="number" step="0.5" min="0" placeholder="∞"><span class="muted">%</span></div>
         <div class="grp" id="periods"><label>Період</label>
-          <input id="dslider" type="range" min="1" max="60" step="1">
+          <span class="dsl-wrap"><input id="dslider" type="range" min="1" max="60" step="1" list="dticks"><datalist id="dticks"></datalist><span id="dmarks"></span></span>
           <b id="dlabel">—</b></div>
       </div>
       <div class="ctl-row">
@@ -218,6 +224,6 @@ th.xm,td.xm{color:#b9c3d6}
 
 </div>
 <script src="config.js?v=20261116b"></script>
-<script src="app.js?v=20261116k"></script>
+<script src="app.js?v=20261116l"></script>
 </body>
 </html>

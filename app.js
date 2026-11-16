@@ -582,15 +582,28 @@ document.getElementById('smin').oninput=e=>later(()=>{const v=parseFloat(String(
 document.getElementById('smax').oninput=e=>later(()=>{const v=parseFloat(String(e.target.value).replace(',','.')); S['smax_'+TAB]=Number.isFinite(v)?v:0; saveSettings(); render();});
 // повзунок періоду: 1…N днів, крайнє праве положення = «Все»
 function tabSpanDays(){ const c=CACHE[TAB]; if(!c||!c.ev.length) return 60; let mn=Infinity,mx=-Infinity; for(const e of c.ev){ if(e.t<mn) mn=e.t; if(e.t>mx) mx=e.t; } return Math.max(1,Math.ceil((mx-mn)/DAY)); }
+const DTICKS=[1,3,7,10,14,21,30,45,60,90];
+function dTicks(span){ return DTICKS.filter(d=>d<span).concat([span+1]); } // span+1 = «Все»
 function syncSlider(){
   const sl=document.getElementById('dslider'), lb=document.getElementById('dlabel'); if(!sl) return;
   const span=tabSpanDays(); sl.max=span+1;
   const d=+S.days||0; sl.value=(d<=0||d>span)?span+1:d;
   lb.textContent=(+sl.value>span)?'Все':sl.value+' дн.';
+  const ticks=dTicks(span), pos=v=>((v-1)/(span))*100;
+  document.getElementById('dticks').innerHTML=ticks.map(v=>`<option value="${v}"></option>`).join('');
+  const mk=document.getElementById('dmarks');
+  mk.innerHTML=ticks.map(v=>`<span data-v="${v}" class="${+sl.value===v?'on':''}" style="left:${pos(v)}%">${v>span?'Все':v}</span>`).join('');
+  mk.querySelectorAll('span').forEach(el=>el.onclick=()=>{ sl.value=el.dataset.v; sl.oninput({target:sl}); sl.onchange&&sl.onchange(); });
 }
 document.getElementById('dslider').oninput=e=>{
-  const span=tabSpanDays(), v=+e.target.value; const days=v>span?0:v;
+  const sl=e.target, span=tabSpanDays(); let v=+sl.value;
+  // «прилипання» до позначок: якщо поруч (±2 дні або ±3% шкали) — стає точно на позначку
+  const tol=Math.max(2,Math.round(span*0.03));
+  let best=null; for(const t of dTicks(span)){ if(Math.abs(t-v)<=tol&&(best==null||Math.abs(t-v)<Math.abs(best-v))) best=t; }
+  if(best!=null&&best!==v){ v=best; sl.value=v; }
+  const days=v>span?0:v;
   document.getElementById('dlabel').textContent=days?days+' дн.':'Все';
+  document.querySelectorAll('#dmarks span').forEach(el=>el.classList.toggle('on',+el.dataset.v===v));
   later(()=>{ S.days=days; saveSettings(); render(); });
 };
 document.getElementById('minn').oninput=e=>later(()=>{const v=parseInt(e.target.value,10); if(v>=1){S.minN=v;saveSettings();render();}});
