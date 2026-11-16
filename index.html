@@ -95,6 +95,18 @@ th.xm,td.xm{color:#b9c3d6}
 /* вертикальні розділювачі колонок */
 #coins th+th,#coins td+td{border-left:1px solid #2f3542}
 #coins td:nth-child(2),#coins th:nth-child(2){box-shadow:inset -1px 0 0 #3a4150}
+
+/* впорядкована панель фільтрів */
+.ctl{display:flex;flex-direction:column;align-items:stretch;gap:0;padding:4px 16px}
+.ctl-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 28px;padding:10px 0}
+.ctl-row+.ctl-row{border-top:1px solid var(--line)}
+.ctl-sec{width:64px;flex:none;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:#6c7486;font-weight:600}
+.ctl .grp{gap:6px}
+.ctl .grp>label{min-width:58px;color:var(--muted)}
+.ctl .grp button{padding:5px 11px;min-width:40px}
+.ctl input[type=number]{width:64px}
+#dslider{width:260px;accent-color:var(--acc)}
+#dlabel{min-width:60px;font-weight:600}
 </style>
 </head>
 <body>
@@ -139,17 +151,25 @@ th.xm,td.xm{color:#b9c3d6}
 <main>
   <div id="empty">Завантажую таблицю... Якщо дані не з'явились, натисни «Оновити зараз» або відкрий xlsx вручну.</div>
   <div id="app" style="display:none">
-    <div class="controls">
-      <div class="grp"><label>Спайк від</label><input id="smin" type="number" step="0.5" min="0"> %
-        <label style="margin-left:8px">до</label><input id="smax" type="number" step="0.5" min="0" placeholder="∞"> %</div>
-      <div class="grp" id="periods" style="min-width:330px"><label>Період</label>
-        <input id="dslider" type="range" min="1" max="60" step="1" style="flex:1;min-width:200px;accent-color:var(--acc)">
-        <b id="dlabel" style="min-width:74px;text-align:right">—</b></div>
-      <div class="grp" id="sides"><label>Сторона</label></div>
-      <div class="grp" id="levs"><label>Плече</label></div>
-      <div class="grp" id="tops"><label>Топ</label></div>
-      <div class="grp"><label>Мін. подій</label><input id="minn" type="number" min="1" step="1"></div>
-      <div class="grp"><label>Монета</label><input id="coinq" type="text" placeholder="пошук" style="width:110px"></div>
+    <div class="controls ctl">
+      <div class="ctl-row">
+        <div class="ctl-sec">Дані</div>
+        <div class="grp"><label>Спайк</label><span class="muted">від</span><input id="smin" type="number" step="0.5" min="0"><span class="muted">до</span><input id="smax" type="number" step="0.5" min="0" placeholder="∞"><span class="muted">%</span></div>
+        <div class="grp" id="periods"><label>Період</label>
+          <input id="dslider" type="range" min="1" max="60" step="1">
+          <b id="dlabel">—</b></div>
+      </div>
+      <div class="ctl-row">
+        <div class="ctl-sec">Фільтри</div>
+        <div class="grp" id="sides"><label>Сторона</label></div>
+        <div class="grp" id="levs"><label>Плече</label></div>
+      </div>
+      <div class="ctl-row">
+        <div class="ctl-sec">Показ</div>
+        <div class="grp" id="tops"><label>Топ</label></div>
+        <div class="grp"><label>Мін. подій</label><input id="minn" type="number" min="1" step="1"></div>
+        <div class="grp"><label>Монета</label><input id="coinq" type="text" placeholder="пошук" style="width:130px"></div>
+      </div>
     </div>
 
     <div class="sum" id="sum"></div>
@@ -198,6 +218,6 @@ th.xm,td.xm{color:#b9c3d6}
 
 </div>
 <script src="config.js?v=20261116b"></script>
-<script src="app.js?v=20261116j"></script>
+<script src="app.js?v=20261116k"></script>
 </body>
 </html>
