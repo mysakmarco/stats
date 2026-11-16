@@ -249,7 +249,6 @@ function render(){
   }
   // ранг за score (від найкращої до найгіршої)
   rows.sort((a,b)=>b.m.score-a.m.score); rows.forEach((r,i)=>r.rank=i+1);
-  const white=rows.filter(r=>r.st==='top'), edge=rows.filter(r=>r.st==='edge'), black=rows.filter(r=>r.st==='bl');
 
   // підсумок
   const spikeTxt=(smax>0?`${smin}–${smax}%`:`від ${smin}%`).replace(/\./g,',');
@@ -257,12 +256,6 @@ function render(){
     `<b>${esc(TAB)}</b> · спайки <b>${spikeTxt}</b> · ${days>0?`<b>${days} дн.</b>: ${fDT(from)} — ${fDT(last)}`:`<b>весь період</b>: ${n?fDT(first):'—'} — ${fDT(last)}`}`+
     ` · відлік від останньої події у файлі${S.side!=='all'?` · сторона <b>${S.side}</b>`:''}<br>`+
     `<span class="note">Очистка: дані з ${esc(S.dateFrom)}; вирізано ${c.rmCut} подій (${esc(S.cutFrom)} — ${esc(S.cutTo)}); виключено ${c.rmEx} рядків монет (${esc(S.exclude)}); старіших за дату — ${c.rmOld}; нерозпізнаних — ${c.bad}.</span>`;
-  const mAll=n?metrics(ev.map(e=>e.rb)):null;
-  document.getElementById('cards').innerHTML=!n?'<div class="card"><div class="v">0</div><div class="l">подій за цими умовами</div></div>':[
-    [n,'подій'],[coinsAll.size,'монет'],[p1(mAll.med),'медіана відкату'],[P(mAll.neg,n),'<0%'],[P(mAll.g19,n),'≥'+S.good+'%'],[sg2(mAll.e),'E (умовне)'],
-    [white.length+' / '+edge.length+' / '+black.length,'топ / на межі / blacklist']
-  ].map(([v,l])=>`<div class="card"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
-
   // таблиця монет
   const q=R.q; let view=rows.filter(r=>!q||r.coin.toUpperCase().includes(q));
   const keyf={rank:r=>r.rank,coin:r=>r.coin,n:r=>r.m.n,med:r=>r.m.med,cv:r=>r.m.cv??99,g0:r=>r.m.g0/r.m.n,g19:r=>r.m.g19/r.m.n,g35:r=>r.m.g35/r.m.n,g50:r=>r.m.g50/r.m.n,neg:r=>r.m.neg/r.m.n,min:r=>r.m.min,e:r=>r.m.e,score:r=>r.m.score,L:r=>r.L?r.L.k/r.L.n:-1,S:r=>r.S?r.S.k/r.S.n:-1,st:r=>({top:0,edge:1,mid:2,bl:3})[r.st]};
@@ -274,6 +267,16 @@ function render(){
   buttons('tops',TOPS.filter(([v])=>v===0||v<nAll),topN,v=>{S.top=v;saveSettings();render();});
   const shown=topN>0?view.slice(0,topN):view;
   document.getElementById('toptitle').textContent=`Топ-лист${topN?' — топ '+topN:''} (${shown.length} з ${rows.length} монет)`;
+  // підсумок і списки рахуються по монетах, показаних у топ-листі
+  const white=shown.filter(r=>r.st==='top'), edge=shown.filter(r=>r.st==='edge'), black=shown.filter(r=>r.st==='bl');
+  const selEv=shown.flatMap(r=>coinsAll.get(r.coin)||[]);
+  const nSel=selEv.length, mSel=nSel?metrics(selEv.map(e=>e.rb)):null;
+  const selLbl=nSel<n?' (у вибірці)':'';
+  document.getElementById('cards').innerHTML=!nSel?'<div class="card"><div class="v">0</div><div class="l">подій за цими умовами</div></div>':[
+    [nSel,'подій'+selLbl],[shown.length,'монет'+selLbl],[p1(mSel.med),'медіана відкату'],[P(mSel.neg,nSel),'<0%'],[P(mSel.g19,nSel),'≥'+S.good+'%'],[sg2(mSel.e),'E (умовне)'],
+    [white.length+' / '+edge.length+' / '+black.length,'топ / на межі / blacklist']
+  ].map(([v,l])=>`<div class="card"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('')+
+  (nSel<n?`<div class="card" style="opacity:.75"><div class="v">${n} / ${coinsAll.size}</div><div class="l">усього подій / монет за період</div></div>`:'');
   const cols=[['rank','#'],['coin','Монета','l'],['n','N'],['med','Медіана'],['cv','CV'],['neg','<0%'],['g0','≥0%'],['g19','≥'+S.good+'%'],['g35','≥35%'],['g50','≥50%'],['min','Мін.'],['e','E'],['L','Long'],['S','Short'],['lev','Плече'],['st','Статус','l']];
   const sd=(x)=>x?`${Math.round(100*x.k/x.n)}% (${x.n})`:'—';
   document.getElementById('coins').innerHTML=
@@ -281,7 +284,7 @@ function render(){
     shown.map(r=>`<tr class="click" data-c="${esc(r.coin)}"><td>${r.rank}</td><td class="l"><b>${esc(short(r.coin))}</b></td><td>${r.m.n}</td><td>${p1(r.m.med)}</td><td>${cvs(r.m.cv)}</td><td class="${r.m.neg?'neg':''}">${P(r.m.neg,r.m.n)}</td><td>${P(r.m.g0,r.m.n)}</td><td>${P(r.m.g19,r.m.n)}</td><td>${P(r.m.g35,r.m.n)}</td><td>${P(r.m.g50,r.m.n)}</td><td class="${r.m.min<0?'neg':'pos'}">${sg(r.m.min)}</td><td class="${r.m.e<0?'neg':''}">${sg2(r.m.e)}</td><td>${sd(r.L)}</td><td>${sd(r.S)}</td><td>${esc(r.lev)}</td><td class="l"><span class="st ${r.st}">${STN[r.st]}</span>${r.m.n<10?' <span class="muted" title="мала вибірка">мало</span>':''}</td></tr>`).join('')+'</tbody>';
   document.querySelectorAll('#coins th').forEach(th=>th.onclick=()=>{const k=th.dataset.k; if(k==='lev')return; if(sortKey===k) sortDir=-sortDir; else {sortKey=k; sortDir=(k==='coin'||k==='rank'||k==='cv'||k==='neg'||k==='st')?1:-1;} render();});
   document.querySelectorAll('#coins tr.click').forEach(tr=>tr.onclick=()=>coinModal(tr.dataset.c));
-  const small=rows.filter(r=>r.m.n<10&&(r.st==='top'||r.st==='edge')).map(r=>short(r.coin));
+  const small=shown.filter(r=>r.m.n<10&&(r.st==='top'||r.st==='edge')).map(r=>short(r.coin));
   document.getElementById('coinnote').innerHTML=`Монети з N &lt; ${minN} не показані: ${skC} монет, ${skE} подій. Клік по монеті — детальна статистика. Клік по заголовку — сортування.`+
     (small.length?`<br><span class="warn">Мала вибірка (&lt;10 подій), місцю в топі довіряти мало: ${esc(small.join(', '))}.</span>`:'');
   const tot=rows.reduce((s,r)=>s+r.m.n,0)+skE;
@@ -290,7 +293,7 @@ function render(){
   const L=(arr,us)=>arr.length?arr.map(r=>us?r.coin:short(r.coin)).join(','):'—';
   document.getElementById('lists').innerHTML=[['Whitelist',white,'top'],['На межі',edge,'edge'],['Blacklist',black,'bl']].map(([t,a,cl],i)=>
     `<div class="list"><div class="head"><span class="st ${cl}">${t} — ${a.length}</span><span><button data-l="${i}" data-u="1">Копіювати з USDT</button> <button data-l="${i}" data-u="0">без USDT</button></span></div><pre>${esc(L(a,true))}</pre></div>`).join('')+
-    `<div class="note" style="grid-column:1/-1">Правила: топ = ≥${S.good}% ≥ ${S.top19}%, медіана ≥ ${S.topMed}%, CV ≤ ${S.topCv}, мінусів ≤ ${S.topNeg}%. «На межі» — топ, але хоч один показник близько до порогу. Blacklist = ≥${S.good}% &lt; ${S.bl19}% або медіана &lt; ${S.blMed}% або CV &gt; ${S.blCv} або мінімум &lt; ${S.blMin}% або мінусів ≥ ${S.blNeg}%. Списки рахуються з усіх монет з N ≥ ${minN}, незалежно від «Топ» і пошуку.</div>`;
+    `<div class="note" style="grid-column:1/-1">Правила: топ = ≥${S.good}% ≥ ${S.top19}%, медіана ≥ ${S.topMed}%, CV ≤ ${S.topCv}, мінусів ≤ ${S.topNeg}%. «На межі» — топ, але хоч один показник близько до порогу. Blacklist = ≥${S.good}% &lt; ${S.bl19}% або медіана &lt; ${S.blMed}% або CV &gt; ${S.blCv} або мінімум &lt; ${S.blMin}% або мінусів ≥ ${S.blNeg}%. Списки, як і картки вгорі, рахуються лише по монетах, показаних у топ-листі (з урахуванням «Топ» і пошуку).</div>`;
   const LS=[white,edge,black];
   document.querySelectorAll('#lists button').forEach(b=>b.onclick=()=>copy(L(LS[+b.dataset.l],b.dataset.u==='1')));
 
