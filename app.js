@@ -142,7 +142,7 @@ function saveSettings(){ VAULT.settings=S; persist(); }
 // ================= Стан =================
 let BOOK=null, FILE='', TAB=null, TABS=[], CACHE={}, sortKey='score', sortDir=-1;
 const PERIODS=[[1,'1д'],[3,'3д'],[7,'7д'],[10,'10д'],[14,'14д'],[30,'30д'],[0,'Все']];
-const TOPS=[[10,'10'],[20,'20'],[30,'30'],[50,'50'],[0,'Всі']];
+const TOPS=[[0,'Всі'],[10,'10'],[20,'20'],[30,'30'],[50,'50']];
 const SIDES=[['all','Всі'],['Long','Long'],['Short','Short']];
 const spikeDef=t=>S.spike[t]??(/^events$/i.test(t)?DEF.spike.Events:DEF.spike._other);
 const isMain=t=>/^events$/i.test(t);
