@@ -142,8 +142,9 @@ th.xm,td.xm{color:#b9c3d6}
     <div class="controls">
       <div class="grp"><label>Спайк від</label><input id="smin" type="number" step="0.5" min="0"> %
         <label style="margin-left:8px">до</label><input id="smax" type="number" step="0.5" min="0" placeholder="∞"> %</div>
-      <div class="grp" id="periods"><label>Період</label></div>
-      <div class="grp"><input id="days" type="number" min="0" step="1" title="днів від останньої події"> дн.</div>
+      <div class="grp" id="periods" style="min-width:330px"><label>Період</label>
+        <input id="dslider" type="range" min="1" max="60" step="1" style="flex:1;min-width:200px;accent-color:var(--acc)">
+        <b id="dlabel" style="min-width:74px;text-align:right">—</b></div>
       <div class="grp" id="sides"><label>Сторона</label></div>
       <div class="grp" id="levs"><label>Плече</label></div>
       <div class="grp" id="tops"><label>Топ</label></div>
@@ -197,6 +198,6 @@ th.xm,td.xm{color:#b9c3d6}
 
 </div>
 <script src="config.js?v=20261116b"></script>
-<script src="app.js?v=20261116i"></script>
+<script src="app.js?v=20261116j"></script>
 </body>
 </html>

@@ -269,6 +269,7 @@ function render(){
   rows.sort((a,b)=>b.m.score-a.m.score); rows.forEach((r,i)=>r.rank=i+1);
 
   buildLevButtons(c.ev);
+  if(document.activeElement!==document.getElementById('dslider')) syncSlider();
   // підсумок
   const spikeTxt=(smax>0?`${smin}–${smax}%`:`від ${smin}%`).replace(/\./g,',');
   document.getElementById('sum').innerHTML=
@@ -455,9 +456,8 @@ function buildLevButtons(all){
 function syncControls(){
   document.getElementById('smin').value=S.spike[TAB]??spikeDef(TAB);
   document.getElementById('smax').value=S['smax_'+TAB]||'';
-  document.getElementById('days').value=S.days;
   document.getElementById('minn').value=S.minN;
-  buttons('periods',PERIODS,S.days,v=>{S.days=v;saveSettings();syncControls();render();});
+  syncSlider();
   buttons('sides',SIDES,S.side,v=>{S.side=v;saveSettings();syncControls();render();});
   buttons('tops',TOPS,S.top,v=>{S.top=v;saveSettings();syncControls();render();});
 }
@@ -580,7 +580,19 @@ drop.addEventListener('drop',e=>{e.preventDefault();document.getElementById('dro
 let deb; const later=f=>{clearTimeout(deb);deb=setTimeout(f,250);};
 document.getElementById('smin').oninput=e=>later(()=>{const v=parseFloat(String(e.target.value).replace(',','.')); if(Number.isFinite(v)){S.spike[TAB]=v;saveSettings();render();}});
 document.getElementById('smax').oninput=e=>later(()=>{const v=parseFloat(String(e.target.value).replace(',','.')); S['smax_'+TAB]=Number.isFinite(v)?v:0; saveSettings(); render();});
-document.getElementById('days').oninput=e=>later(()=>{const v=parseInt(e.target.value,10); if(Number.isFinite(v)&&v>=0){S.days=v;saveSettings();buttons('periods',PERIODS,S.days,v=>{S.days=v;saveSettings();syncControls();render();});render();}});
+// повзунок періоду: 1…N днів, крайнє праве положення = «Все»
+function tabSpanDays(){ const c=CACHE[TAB]; if(!c||!c.ev.length) return 60; let mn=Infinity,mx=-Infinity; for(const e of c.ev){ if(e.t<mn) mn=e.t; if(e.t>mx) mx=e.t; } return Math.max(1,Math.ceil((mx-mn)/DAY)); }
+function syncSlider(){
+  const sl=document.getElementById('dslider'), lb=document.getElementById('dlabel'); if(!sl) return;
+  const span=tabSpanDays(); sl.max=span+1;
+  const d=+S.days||0; sl.value=(d<=0||d>span)?span+1:d;
+  lb.textContent=(+sl.value>span)?'Все':sl.value+' дн.';
+}
+document.getElementById('dslider').oninput=e=>{
+  const span=tabSpanDays(), v=+e.target.value; const days=v>span?0:v;
+  document.getElementById('dlabel').textContent=days?days+' дн.':'Все';
+  later(()=>{ S.days=days; saveSettings(); render(); });
+};
 document.getElementById('minn').oninput=e=>later(()=>{const v=parseInt(e.target.value,10); if(v>=1){S.minN=v;saveSettings();render();}});
 document.getElementById('coinq').oninput=()=>later(render);
 document.getElementById('copymd').onclick=copyMarkdown;
