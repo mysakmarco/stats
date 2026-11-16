@@ -153,6 +153,16 @@ function bucketEdges(tab,min,max){
 }
 
 // ================= Завантаження вкладки =================
+function parseX(v,pct){
+  if(v==null||v==='') return null;
+  if(typeof v==='number') return pct?v*100:v;
+  const s=String(v).trim(); if(!s) return null;
+  const t=s.replace(/%/g,'').replace(/,/g,'.').replace(/\s+/g,'').replace(/−/g,'-');
+  const f=Number(t); return Number.isFinite(f)?f:null;
+}
+function medianOf(a){ const v=a.filter(x=>x!=null&&Number.isFinite(x)).sort((x,y)=>x-y); const n=v.length; if(!n) return null; return n%2?v[(n-1)/2]:(v[n/2-1]+v[n/2])/2; }
+function fx(v,pct){ if(v==null) return '—'; const a=Math.abs(v); const d=pct?2:(a>=100?0:a>=10?1:2); return (v<0?'−':'')+a.toFixed(d).replace('.',',')+(pct?'%':''); }
+function xSel(){ const all=(CACHE[TAB]&&CACHE[TAB].xcols)||[]; const saved=(S.xcols||{})[TAB]; return saved?all.filter(c=>saved.includes(c.label)):all; }
 async function loadTab(name){
   if(CACHE[name]) return CACHE[name];
   const rows=await BOOK.readSheet(name);
@@ -162,6 +172,9 @@ async function loadTab(name){
   const f=p=>h.findIndex(x=>x&&x.startsWith(p));
   const ci={d:f('date'),c:f('coin'),l:f('leverage'),s:f('side'),sp:f('spike'),rb:f('rollback')};
   for(const [k,n] of [['d','Date'],['c','Coin'],['s','Side'],['sp','SpikePercent'],['rb','RollbackPercent']]) if(ci[k]<0) throw new Error(`На аркуші ${name} немає колонки ${n}`);
+  // додаткові метрики: усі інші колонки, крім Notes
+  const core=new Set(Object.values(ci).filter(x=>x>=0));
+  const xcols=[]; rows[hi].forEach((c,idx)=>{ const lab=String(c??'').trim(); if(!lab||core.has(idx)||/^notes?$/i.test(lab)) return; xcols.push({label:lab,idx,pct:/\(%\)\s*$/.test(lab)}); });
   const ev=[]; let bad=0;
   for(let i=hi+1;i<rows.length;i++){
     const r=rows[i]; if(!r) continue;
@@ -170,9 +183,12 @@ async function loadTab(name){
     if(t==null||sp==null||rb==null){bad++;continue;}
     let side=String(r[ci.s]??'').replace(/\s+/g,''); const sl=side.toLowerCase(); if(sl==='long') side='Long'; else if(sl==='short') side='Short';
     let lev=ci.l>=0?String(r[ci.l]??'').trim().replace(/x$/i,''):'';
-    ev.push({t,coin,cu:coin.toUpperCase(),side,lev,sp,rb});
+    ev.push({t,coin,cu:coin.toUpperCase(),side,lev,sp,rb,x:xcols.map(c=>parseX(r[c.idx],c.pct))});
   }
-  return CACHE[name]={ev,bad};
+  // прибрати колонки без жодного числа (порожні/службові)
+  const keep=xcols.map((c,j)=>!/^unnamed/i.test(c.label)&&ev.some(e=>e.x[j]!=null));
+  if(keep.some(k=>!k)){ for(const e of ev) e.x=e.x.filter((_,j)=>keep[j]); }
+  return CACHE[name]={ev,bad,xcols:xcols.filter((_,j)=>keep[j])};
 }
 function cleaned(name){
   const raw=CACHE[name]; const ex=S.exclude.split(',').map(x=>x.trim().toUpperCase()).filter(Boolean);
@@ -245,7 +261,8 @@ function render(){
     const m=metrics(es.map(e=>e.rb));
     const sd=s=>{const x=es.filter(e=>e.side===s); return x.length?{k:x.filter(e=>e.rb>=S.good).length,n:x.length}:null;};
     const levs=[...new Set(es.map(e=>e.lev))].sort((a,b)=>(+a||1e9)-(+b||1e9));
-    rows.push({coin,m,st:status(m),L:sd('Long'),S:sd('Short'),lev:levs.join(', ')});
+    const xs=(CACHE[TAB].xcols||[]).map((c,j)=>medianOf(es.map(e=>e.x?e.x[j]:null)));
+    rows.push({coin,m,st:status(m),L:sd('Long'),S:sd('Short'),lev:levs.join(', '),xs});
   }
   // ранг за score (від найкращої до найгіршої)
   rows.sort((a,b)=>b.m.score-a.m.score); rows.forEach((r,i)=>r.rank=i+1);
@@ -259,6 +276,8 @@ function render(){
   // таблиця монет
   const q=R.q; let view=rows.filter(r=>!q||r.coin.toUpperCase().includes(q));
   const keyf={rank:r=>r.rank,coin:r=>r.coin,n:r=>r.m.n,med:r=>r.m.med,cv:r=>r.m.cv??99,g0:r=>r.m.g0/r.m.n,g19:r=>r.m.g19/r.m.n,g35:r=>r.m.g35/r.m.n,g50:r=>r.m.g50/r.m.n,neg:r=>r.m.neg/r.m.n,min:r=>r.m.min,e:r=>r.m.e,score:r=>r.m.score,L:r=>r.L?r.L.k/r.L.n:-1,S:r=>r.S?r.S.k/r.S.n:-1,st:r=>({top:0,edge:1,mid:2,bl:3})[r.st]};
+  const XS=xSel(), XALL=(CACHE[TAB].xcols||[]);
+  XS.forEach(c=>{ const j=XALL.indexOf(c); keyf['x'+j]=r=>r.xs&&r.xs[j]!=null?r.xs[j]:(sortDir<0?-Infinity:Infinity); });
   const kf=keyf[sortKey]||keyf.score;
   view.sort((a,b)=>{const x=kf(a),y=kf(b); return (x<y?-1:x>y?1:0)*sortDir || a.rank-b.rank;});
   // кнопки «Топ N» лише ті, що менші за кількість монет у періоді; інакше — «Всі»
@@ -277,11 +296,12 @@ function render(){
     [white.length+' / '+edge.length+' / '+black.length,'топ / на межі / blacklist']
   ].map(([v,l])=>`<div class="card"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('')+
   (nSel<n?`<div class="card" style="opacity:.75"><div class="v">${n} / ${coinsAll.size}</div><div class="l">усього подій / монет за період</div></div>`:'');
-  const cols=[['rank','#'],['coin','Монета','l'],['n','N'],['med','Медіана'],['cv','CV'],['neg','<0%'],['g0','≥0%'],['g19','≥'+S.good+'%'],['g35','≥35%'],['g50','≥50%'],['min','Мін.'],['e','E'],['L','Long'],['S','Short'],['lev','Плече'],['st','Статус','l']];
+  const cols=[['rank','#'],['coin','Монета','l'],['n','N'],['med','Медіана'],['cv','CV'],['neg','<0%'],['g0','≥0%'],['g19','≥'+S.good+'%'],['g35','≥35%'],['g50','≥50%'],['min','Мін.'],['e','E'],['L','Long'],['S','Short'],['lev','Плече'],['st','Статус','l']].concat(XS.map(c=>['x'+XALL.indexOf(c),c.label,'xm']));
   const sd=(x)=>x?`${Math.round(100*x.k/x.n)}% (${x.n})`:'—';
   document.getElementById('coins').innerHTML=
-    `<thead><tr>${cols.map(([k,t,cl])=>`<th class="${cl||''} ${sortKey===k?'sorted':''}" data-k="${k}">${t}${sortKey===k?(sortDir<0?' ↓':' ↑'):''}</th>`).join('')}</tr></thead><tbody>`+
-    shown.map(r=>`<tr class="click" data-c="${esc(r.coin)}"><td>${r.rank}</td><td class="l"><b>${esc(short(r.coin))}</b></td><td>${r.m.n}</td><td>${p1(r.m.med)}</td><td>${cvs(r.m.cv)}</td><td class="${r.m.neg?'neg':''}">${P(r.m.neg,r.m.n)}</td><td>${P(r.m.g0,r.m.n)}</td><td>${P(r.m.g19,r.m.n)}</td><td>${P(r.m.g35,r.m.n)}</td><td>${P(r.m.g50,r.m.n)}</td><td class="${r.m.min<0?'neg':'pos'}">${sg(r.m.min)}</td><td class="${r.m.e<0?'neg':''}">${sg2(r.m.e)}</td><td>${sd(r.L)}</td><td>${sd(r.S)}</td><td>${esc(r.lev)}</td><td class="l"><span class="st ${r.st}">${STN[r.st]}</span>${r.m.n<10?' <span class="muted" title="мала вибірка">мало</span>':''}</td></tr>`).join('')+'</tbody>';
+    `<thead><tr>${cols.map(([k,t,cl])=>`<th class="${cl||''} ${sortKey===k?'sorted':''}" data-k="${k}"${cl==='xm'?' title="медіана по подіях монети"':''}>${t}${sortKey===k?(sortDir<0?' ↓':' ↑'):''}</th>`).join('')}</tr></thead><tbody>`+
+    shown.map(r=>`<tr class="click" data-c="${esc(r.coin)}"><td>${r.rank}</td><td class="l"><b>${esc(short(r.coin))}</b></td><td>${r.m.n}</td><td>${p1(r.m.med)}</td><td>${cvs(r.m.cv)}</td><td class="${r.m.neg?'neg':''}">${P(r.m.neg,r.m.n)}</td><td>${P(r.m.g0,r.m.n)}</td><td>${P(r.m.g19,r.m.n)}</td><td>${P(r.m.g35,r.m.n)}</td><td>${P(r.m.g50,r.m.n)}</td><td class="${r.m.min<0?'neg':'pos'}">${sg(r.m.min)}</td><td class="${r.m.e<0?'neg':''}">${sg2(r.m.e)}</td><td>${sd(r.L)}</td><td>${sd(r.S)}</td><td>${esc(r.lev)}</td><td class="l"><span class="st ${r.st}">${STN[r.st]}</span>${r.m.n<10?' <span class="muted" title="мала вибірка">мало</span>':''}</td>${XS.map(c=>{const j=XALL.indexOf(c); const v=r.xs?r.xs[j]:null; return `<td class="${c.pct&&v<0?'neg':''}">${fx(v,c.pct)}</td>`;}).join('')}</tr>`).join('')+'</tbody>';
+  buildXPicker();
   document.querySelectorAll('#coins th').forEach(th=>th.onclick=()=>{const k=th.dataset.k; if(k==='lev')return; if(sortKey===k) sortDir=-sortDir; else {sortKey=k; sortDir=(k==='coin'||k==='rank'||k==='cv'||k==='neg'||k==='st')?1:-1;} render();});
   document.querySelectorAll('#coins tr.click').forEach(tr=>tr.onclick=()=>coinModal(tr.dataset.c));
   const small=shown.filter(r=>r.m.n<10&&(r.st==='top'||r.st==='edge')).map(r=>short(r.coin));
@@ -346,13 +366,16 @@ function coinModal(coin){
   for(const e of es){ const d=new Date(e.t); const k=monthly?d.getUTCFullYear()*100+d.getUTCMonth()+1:Math.floor(e.t/DAY); (by.get(k)||by.set(k,[]).get(k)).push(e); }
   const dg=[...by.keys()].sort((a,b)=>a-b).map(k=>[monthly?`${pad(k%100)}.${Math.floor(k/100)}`:fD(k*DAY),by.get(k)]);
   const worst=es.slice().sort((a,b)=>a.rb-b.rb).slice(0,5);
-  const evRows=a=>a.map(e=>`<tr><td class="l">${fDT(e.t)}</td><td class="l">${e.side}</td><td>${e.lev}x</td><td>${p1(e.sp)}</td><td class="${e.rb<0?'neg':e.rb>=S.good?'pos':''}">${p1(e.rb)}</td></tr>`).join('');
+  const XS=xSel(), XALL=(CACHE[TAB].xcols||[]);
+  const xh=XS.map(c=>`<th>${esc(c.label)}</th>`).join('');
+  const evRows=a=>a.map(e=>`<tr><td class="l">${fDT(e.t)}</td><td class="l">${e.side}</td><td>${e.lev}x</td><td>${p1(e.sp)}</td><td class="${e.rb<0?'neg':e.rb>=S.good?'pos':''}">${p1(e.rb)}</td>${XS.map(c=>{const v=e.x?e.x[XALL.indexOf(c)]:null; return `<td>${fx(v,c.pct)}</td>`;}).join('')}</tr>`).join('');
   document.getElementById('mbox').innerHTML=
     `<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="font-size:18px">${esc(coin)} · ${esc(TAB)} · спайки ${(smax>0?`${smin}–${smax}%`:`від ${smin}%`).replace(/\./g,',')} · ${days>0?days+' дн.':'весь період'}</h2><button id="mclose">Закрити</button></div>`+
     `<div class="cards">${[[m.n,'подій'],[p1(m.med),'медіана'],[cvs(m.cv),'CV'],[P(m.neg,m.n),'<0%'],[P(m.g0,m.n),'≥0%'],[P(m.g19,m.n),'≥'+S.good+'%'],[P(m.g35,m.n),'≥35%'],[P(m.g50,m.n),'≥50%'],[sg(m.min),'мінімум'],[sg2(m.e),'E'],[STN[status(m)],'статус']].map(([v,l])=>`<div class="card"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('')}</div>`+
     `<div class="grid2">${tbl('По сторонах','Зріз',g)}${tbl('За розміром спайку','Спайк',bg)}${tbl(monthly?'По місяцях':'По днях',monthly?'Місяць':'День',dg)}`+
-    `<div><h2>Найгірші події</h2><div class="tw"><table><thead><tr><th class="l">Дата</th><th class="l">Сторона</th><th>Плече</th><th>Спайк</th><th>Відкат</th></tr></thead><tbody>${evRows(worst)}</tbody></table></div>`+
-    `<h2 style="margin-top:12px">Останні 15 подій</h2><div class="tw"><table><thead><tr><th class="l">Дата</th><th class="l">Сторона</th><th>Плече</th><th>Спайк</th><th>Відкат</th></tr></thead><tbody>${evRows(es.slice(0,15))}</tbody></table></div></div></div>`+
+    `<div><h2>Найгірші події</h2><div class="tw"><table><thead><tr><th class="l">Дата</th><th class="l">Сторона</th><th>Плече</th><th>Спайк</th><th>Відкат</th>${xh}</tr></thead><tbody>${evRows(worst)}</tbody></table></div>`+
+    `<h2 style="margin-top:12px">Останні 15 подій</h2><div class="tw"><table><thead><tr><th class="l">Дата</th><th class="l">Сторона</th><th>Плече</th><th>Спайк</th><th>Відкат</th>${xh}</tr></thead><tbody>${evRows(es.slice(0,15))}</tbody></table></div></div></div>`+
+    (XS.length?`<h2 style="margin-top:12px">Доп. метрики (медіана по подіях)</h2><div class="tw"><table><thead><tr>${xh}</tr></thead><tbody><tr>${XS.map(c=>{const j=XALL.indexOf(c); return `<td>${fx(medianOf(es.map(e=>e.x?e.x[j]:null)),c.pct)}</td>`;}).join('')}</tr></tbody></table></div>`:'')+
     `<div style="margin-top:12px"><button id="mcopy">Копіювати рядок монети (Markdown)</button></div>`;
   const md=document.getElementById('modal'); md.style.display='flex';
   document.getElementById('mclose').onclick=()=>{md.style.display='none';window._lastCoin=null;};
@@ -363,9 +386,24 @@ function coinModal(coin){
   };
 }
 
+function buildXPicker(){
+  const box=document.getElementById('xpick'); if(!box) return;
+  const all=(CACHE[TAB]&&CACHE[TAB].xcols)||[];
+  if(!all.length){ box.style.display='none'; return; }
+  box.style.display='';
+  const sel=new Set(xSel().map(c=>c.label));
+  const setSel=arr=>{ S.xcols=S.xcols||{}; S.xcols[TAB]=arr; saveSettings(); render(); };
+  document.getElementById('xcount').textContent=`${sel.size} з ${all.length}`;
+  const list=document.getElementById('xlist');
+  list.innerHTML=all.map(c=>`<label class="xchk"><input type="checkbox" data-l="${esc(c.label)}" ${sel.has(c.label)?'checked':''}> ${esc(c.label)}</label>`).join('');
+  list.querySelectorAll('input').forEach(inp=>inp.onchange=()=>setSel([...list.querySelectorAll('input:checked')].map(i=>i.dataset.l)));
+  document.getElementById('xall').onclick=()=>setSel(all.map(c=>c.label));
+  document.getElementById('xnone').onclick=()=>setSel([]);
+}
 function copyMarkdown(){
   const trs=[...document.querySelectorAll('#coins tbody tr')];
-  const head=`| # | Монета | N | Медіана | CV | <0% | ≥0% | ≥${S.good}% | ≥35% | ≥50% | Мін. | E | Long | Short | Плече | Статус |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|`;
+  const ths=[...document.querySelectorAll('#coins thead th')].map(th=>th.textContent.replace(/[↓↑]/g,'').trim());
+  const head='| '+ths.join(' | ')+' |\n|'+ths.map(()=>'---').join('|')+'|';
   copy(head+'\n'+trs.map(tr=>'| '+[...tr.children].map(td=>td.textContent.trim().replace(/\s*мало$/,' (мало)')).join(' | ')+' |').join('\n'));
 }
 function copy(t){
