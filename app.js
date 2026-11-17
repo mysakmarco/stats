@@ -381,6 +381,9 @@ function coinModal(coin){
   for(const e of es){ const d=new Date(e.t); const k=monthly?d.getUTCFullYear()*100+d.getUTCMonth()+1:Math.floor(e.t/DAY); (by.get(k)||by.set(k,[]).get(k)).push(e); }
   const dg=[...by.keys()].sort((a,b)=>a-b).map(k=>[monthly?`${pad(k%100)}.${Math.floor(k/100)}`:fD(k*DAY),by.get(k)]);
   const worst=es.slice().sort((a,b)=>a.rb-b.rb).slice(0,5);
+  // останні 15 подій монети — з усього файлу, без періоду, порогу спайку, сторони і дати «з»
+  const cf=parseDt(S.cutFrom), ct=parseDt(S.cutTo);
+  const recent=CACHE[TAB].ev.filter(e=>e.coin===coin&&!(cf!=null&&ct!=null&&e.t>=cf&&e.t<=ct)).sort((a,b)=>b.t-a.t).slice(0,15);
   const XS=xSel(), XALL=(CACHE[TAB].xcols||[]);
   const xh=XS.map(c=>`<th>${esc(c.label)}</th>`).join('');
   const evRows=a=>a.map(e=>`<tr><td class="l">${fDT(e.t)}</td><td class="l">${e.side}</td><td>${e.lev}x</td><td>${p1(e.sp)}</td><td class="${e.rb<0?'neg':e.rb>=S.good?'pos':''}">${p1(e.rb)}</td>${XS.map(c=>{const v=e.x?e.x[XALL.indexOf(c)]:null; return `<td>${fx(v,c.pct)}</td>`;}).join('')}</tr>`).join('');
@@ -389,7 +392,7 @@ function coinModal(coin){
     `<div class="cards">${[[m.n,'подій'],[p1(m.med),'медіана'],[cvs(m.cv),'CV'],[P(m.neg,m.n),'<0%'],[P(m.g0,m.n),'≥0%'],[P(m.g19,m.n),'≥'+S.good+'%'],[P(m.g35,m.n),'≥35%'],[P(m.g50,m.n),'≥50%'],[sg(m.min),'мінімум'],[sg2(m.e),'E'],[STN[status(m)],'статус']].map(([v,l])=>`<div class="card"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('')}</div>`+
     `<div class="grid2">${tbl('По сторонах','Зріз',g)}${tbl('За розміром спайку','Спайк',bg)}${tbl(monthly?'По місяцях':'По днях',monthly?'Місяць':'День',dg)}`+
     `<div><h2>Найгірші події</h2><div class="tw"><table><thead><tr><th class="l">Дата</th><th class="l">Сторона</th><th>Плече</th><th>Спайк</th><th>Відкат</th>${xh}</tr></thead><tbody>${evRows(worst)}</tbody></table></div>`+
-    `<h2 style="margin-top:12px">Останні 15 подій</h2><div class="tw"><table><thead><tr><th class="l">Дата</th><th class="l">Сторона</th><th>Плече</th><th>Спайк</th><th>Відкат</th>${xh}</tr></thead><tbody>${evRows(es.slice(0,15))}</tbody></table></div></div></div>`+
+    `<h2 style="margin-top:12px">Останні 15 подій <span class="muted" style="font-weight:400;font-size:12px">(з усього файлу, без фільтрів)</span></h2><div class="tw"><table><thead><tr><th class="l">Дата</th><th class="l">Сторона</th><th>Плече</th><th>Спайк</th><th>Відкат</th>${xh}</tr></thead><tbody>${evRows(recent)}</tbody></table></div></div></div>`+
     (XS.length?`<h2 style="margin-top:12px">Доп. метрики (медіана по подіях)</h2><div class="tw"><table><thead><tr>${xh}</tr></thead><tbody><tr>${XS.map(c=>{const j=XALL.indexOf(c); return `<td>${fx(medianOf(es.map(e=>e.x?e.x[j]:null)),c.pct)}</td>`;}).join('')}</tr></tbody></table></div>`:'')+
     `<div style="margin-top:12px"><button id="mcopy">Копіювати рядок монети (Markdown)</button></div>`;
   const md=document.getElementById('modal'); md.style.display='flex';
