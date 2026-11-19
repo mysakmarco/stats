@@ -5,10 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Moon Stats</title>
 <link rel="icon" href="icon.png">
+<script>try{var t=localStorage.getItem('moonstats_theme');if(t&&t!=='dark')document.documentElement.dataset.theme=t;}catch(e){}</script>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--panel2:#1e222b;--line:#2a2f3a;--text:#e6e8ec;--muted:#8a91a0;
   --acc:#4c8dff;--good:#3fb27f;--warn:#d9a441;--bad:#e05d5d;--mono:ui-monospace,SFMono-Regular,Consolas,monospace;
+  --hov:#1b1f27;--hov2:#1f2430;--stripe:rgba(255,255,255,.025);--cell:#e9ecf1;--sep:#2f3542;--sep2:#3a4150;
+  --btnhov:#3d4452;--dim:#6c7486;--dim2:#7d8597;--xm:#b9c3d6;--pre:#cfd3da;--shadow:rgba(0,0,0,.4);--overlay:rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+/* теми: темна (стандартна, вище), чорна, світла */
+:root[data-theme=black]{
+  --bg:#000;--panel:#0a0a0b;--panel2:#141416;--line:#232326;--text:#e8e8ea;--muted:#8b8b92;
+  --hov:#111113;--hov2:#18181b;--stripe:rgba(255,255,255,.03);--cell:#ececee;--sep:#1f1f22;--sep2:#2e2e32;
+  --btnhov:#3a3a40;--dim:#6b6b72;--dim2:#7a7a82;--xm:#b5bccb;--pre:#d2d2d6;--shadow:rgba(0,0,0,.7);--overlay:rgba(0,0,0,.75);
+}
+:root[data-theme=light]{
+  --bg:#f3f5f8;--panel:#fff;--panel2:#eef1f5;--line:#d8dde5;--text:#1b1f27;--muted:#5d6676;
+  --acc:#2f6fe4;--good:#18895a;--warn:#a86f0c;--bad:#cf3a3a;
+  --hov:#e8eef7;--hov2:#e2e9f4;--stripe:rgba(0,0,0,.025);--cell:#1b1f27;--sep:#e2e6ec;--sep2:#cdd3dd;
+  --btnhov:#b4bcc8;--dim:#7a8292;--dim2:#7a8292;--xm:#3e5a88;--pre:#2a2f3a;--shadow:rgba(0,0,0,.12);--overlay:rgba(0,0,0,.35);
+  color-scheme:light;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
@@ -16,11 +33,11 @@ header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:14px 18px
 h1{font-size:17px;margin:0 12px 0 0;font-weight:650;letter-spacing:.2px}
 .muted{color:var(--muted)}
 button,.btn{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:6px 11px;font:inherit;cursor:pointer}
-button:hover{border-color:#3d4452}
+button:hover{border-color:var(--btnhov)}
 button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 select,input[type=number],input[type=text],input[type=datetime-local],input[type=date]{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:6px 8px;font:inherit}
 input[type=number]{width:76px}
-#drop{border:1px dashed #3d4452;border-radius:9px;padding:8px 14px;color:var(--muted)}
+#drop{border:1px dashed var(--btnhov);border-radius:9px;padding:8px 14px;color:var(--muted)}
 #drop.over{border-color:var(--acc);color:var(--text)}
 nav{display:flex;gap:4px;padding:10px 18px 0;border-bottom:1px solid var(--line);background:var(--panel)}
 nav button{border-radius:8px 8px 0 0;border-bottom:none;padding:8px 16px}
@@ -43,7 +60,7 @@ th,td{padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;white
 th{position:sticky;top:0;background:var(--panel2);color:var(--muted);font-weight:600;cursor:pointer;user-select:none}
 th.sorted{color:var(--text)}
 td.l,th.l{text-align:left}
-tbody tr:hover{background:#1b1f27}
+tbody tr:hover{background:var(--hov)}
 tr.click{cursor:pointer}
 .st{padding:2px 8px;border-radius:20px;font-size:12px;font-weight:600}
 .st.top{background:rgba(63,178,127,.15);color:var(--good)}
@@ -54,24 +71,24 @@ tr.click{cursor:pointer}
 .lists{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:10px}
 .list{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
 .list .head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
-.list pre{margin:0;white-space:pre-wrap;word-break:break-all;font:12px/1.5 var(--mono);color:#cfd3da;max-height:140px;overflow:auto}
+.list pre{margin:0;white-space:pre-wrap;word-break:break-all;font:12px/1.5 var(--mono);color:var(--pre);max-height:140px;overflow:auto}
 details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-top:14px}
 summary{cursor:pointer;font-weight:600}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(520px,1fr));gap:14px;margin-top:10px}
 .set{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px 18px;margin-top:10px}
 .set label{display:flex;justify-content:space-between;gap:10px;align-items:center;color:var(--muted)}
 .set input[type=text]{width:100%}
-#modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-start;justify-content:center;padding:30px 12px;overflow:auto;z-index:5}
+#modal{position:fixed;inset:0;background:var(--overlay);display:none;align-items:flex-start;justify-content:center;padding:30px 12px;overflow:auto;z-index:5}
 #modal .box{background:var(--bg);border:1px solid var(--line);border-radius:12px;max-width:1150px;width:100%;padding:16px 18px}
 .note{color:var(--muted);font-size:12.5px;margin-top:6px}
 .warn{color:var(--warn)}
 #empty{padding:50px 10px;text-align:center;color:var(--muted)}
 .toast{position:fixed;bottom:18px;right:18px;background:var(--acc);color:#fff;padding:8px 14px;border-radius:8px;display:none;z-index:9}
 .xchk{display:inline-flex;gap:5px;align-items:center;color:var(--muted);font-size:13px;white-space:nowrap}
-th.xm,td.xm{color:#b9c3d6}
+th.xm,td.xm{color:var(--xm)}
 #coins td:nth-child(2),#coins th:nth-child(2){position:sticky;left:0;background:var(--panel);z-index:1}
 #coins th:nth-child(2){background:var(--panel2);z-index:2}
-#gear{position:fixed;right:22px;bottom:22px;width:48px;height:48px;border-radius:50%;font-size:22px;line-height:1;padding:0;background:var(--panel2);border:1px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.4);z-index:8}
+#gear{position:fixed;right:22px;bottom:22px;width:48px;height:48px;border-radius:50%;font-size:22px;line-height:1;padding:0;background:var(--panel2);border:1px solid var(--line);box-shadow:0 4px 14px var(--shadow);z-index:8}
 #gear:hover{border-color:var(--acc)}
 #colpanel{position:fixed;top:0;right:0;bottom:0;width:320px;max-width:90vw;background:var(--panel);border-left:1px solid var(--line);padding:16px 16px 80px;overflow:auto;z-index:9;transform:translateX(105%);transition:transform .2s}
 #colpanel.open{transform:none}
@@ -84,23 +101,23 @@ th.xm,td.xm{color:#b9c3d6}
 #coins{width:auto;min-width:0;font-size:13.5px}
 #coins th,#coins td{padding:5px 10px;text-align:right}
 #coins th.l,#coins td.l{text-align:left}
-#coins tbody tr:nth-child(even) td{background:rgba(255,255,255,.025)}
-#coins tbody tr:hover td{background:#1f2430}
-#coins td{color:#e9ecf1;-webkit-font-smoothing:antialiased}
+#coins tbody tr:nth-child(even) td{background:var(--stripe)}
+#coins tbody tr:hover td{background:var(--hov2)}
+#coins td{color:var(--cell);-webkit-font-smoothing:antialiased}
 #coins td:nth-child(2),#coins th:nth-child(2){background:var(--panel)!important;box-shadow:inset -1px 0 0 var(--line)}
 #coins th{font-size:12.5px;letter-spacing:.2px}
 #coins td.neg{color:var(--bad)}#coins td.pos{color:var(--good)}
 .tw:has(> #coins){display:inline-block;max-width:100%}
 
 /* вертикальні розділювачі колонок */
-#coins th+th,#coins td+td{border-left:1px solid #2f3542}
-#coins td:nth-child(2),#coins th:nth-child(2){box-shadow:inset -1px 0 0 #3a4150}
+#coins th+th,#coins td+td{border-left:1px solid var(--sep)}
+#coins td:nth-child(2),#coins th:nth-child(2){box-shadow:inset -1px 0 0 var(--sep2)}
 
 /* впорядкована панель фільтрів */
 .ctl{display:flex;flex-direction:column;align-items:stretch;gap:0;padding:4px 16px}
 .ctl-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 28px;padding:10px 0}
 .ctl-row+.ctl-row{border-top:1px solid var(--line)}
-.ctl-sec{width:64px;flex:none;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:#6c7486;font-weight:600}
+.ctl-sec{width:64px;flex:none;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--dim);font-weight:600}
 .ctl .grp{gap:6px}
 .ctl .grp>label{min-width:58px;color:var(--muted)}
 .ctl .grp button{padding:5px 11px;min-width:40px}
@@ -109,7 +126,7 @@ th.xm,td.xm{color:#b9c3d6}
 #dlabel{min-width:60px;font-weight:600}
 
 .dsl-wrap{position:relative;display:inline-block;padding-bottom:16px}
-#dmarks{position:absolute;left:8px;right:8px;bottom:0;height:14px;font-size:10.5px;color:#7d8597}
+#dmarks{position:absolute;left:8px;right:8px;bottom:0;height:14px;font-size:10.5px;color:var(--dim2)}
 #dmarks span{position:absolute;transform:translateX(-50%);cursor:pointer;white-space:nowrap}
 #dmarks span:hover{color:var(--text)}
 #dmarks span.on{color:var(--acc);font-weight:600}
@@ -139,7 +156,7 @@ th.xm,td.xm{color:#b9c3d6}
   <button id="gsbtn" style="display:none"></button>
   <div id="drop">або перетягни файл сюди</div>
   <span id="fname" class="muted"></span>
-  <span style="margin-left:auto;display:flex;gap:6px"><button id="chpw" style="display:none"></button><span class="muted" style="align-self:center">Ви: <b id="whoami"></b></span><button id="lockbtn">Заблокувати</button></span>
+  <span style="margin-left:auto;display:flex;gap:6px"><button id="chpw" style="display:none"></button><span class="muted" style="align-self:center">Ви: <b id="whoami"></b></span><select id="theme" title="Тема оформлення"><option value="dark">Тема: темна</option><option value="black">Тема: чорна</option><option value="light">Тема: світла</option></select><button id="lockbtn">Заблокувати</button></span>
   <span id="live" class="muted" style="display:none"><select id="every" title="Як часто оновлювати"><option value="1">кожну 1 хв</option><option value="5" selected>кожні 5 хв</option><option value="15">кожні 15 хв</option><option value="30">кожні 30 хв</option></select>
     <button id="refresh">Оновити зараз</button> <button id="unlink">Відв'язати</button> <span id="livest"></span></span>
 </header>
@@ -234,6 +251,11 @@ th.xm,td.xm{color:#b9c3d6}
 <div class="toast" id="toast">Скопійовано</div>
 
 </div>
+<script>
+(function(){const sel=document.getElementById('theme'),root=document.documentElement;
+sel.value=root.dataset.theme||'dark';
+sel.onchange=()=>{const t=sel.value; if(t==='dark') delete root.dataset.theme; else root.dataset.theme=t; try{localStorage.setItem('moonstats_theme',t);}catch(e){}};})();
+</script>
 <script src="config.js?v=20261116b"></script>
 <script src="app.js?v=20261119d"></script>
 </body>
