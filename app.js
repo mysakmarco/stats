@@ -371,6 +371,7 @@ let TLC=TLDEF;
 function tlS(){ if(!S.tl||typeof S.tl!=='object') S.tl={}; for(const k in TLDEF) if(!(k in S.tl)) S.tl[k]=structuredClone(TLDEF[k]); TLC=S.tl; return TLC; }
 let TLARGS=null;
 function tlSave(){ saveSettings(); if(TLARGS) renderTL(...TLARGS); }
+let tlDeb; function tlLater(){ clearTimeout(tlDeb); tlDeb=setTimeout(()=>{ saveSettings(); if(TLARGS) renderTL(...TLARGS,true); },250); }
 function tlControls(all){
   const T=tlS(), box=document.getElementById('tlctl'); if(!box) return;
   const cnt=new Map(); for(const e of all){ const k=String(e.lev||'?'); cnt.set(k,(cnt.get(k)||0)+1); }
@@ -399,7 +400,7 @@ function tlControls(all){
     `<div class="grp"><label>Дублі ближче</label>${num('dedupMin',50,1)}<span class="muted">хв</span></div>`+
     `<div class="grp"><button data-a="reset">Стандартні</button></div></div>`;
   box.querySelectorAll('button[data-a]').forEach(b=>b.onclick=()=>{
-    const [a,v]=b.dataset.a.split(/:(.*)/s);
+    const T=tlS(); const [a,v]=b.dataset.a.split(/:(.*)/s);
     if(a==='d') T.days=+v; else if(a==='s') T.side=v; else if(a==='t') T.top=+v;
     else if(a==='l'){ T.lev=T.lev||{}; if(!v) T.lev[TAB]=[]; else { const s2=new Set(sel); s2.has(v)?s2.delete(v):s2.add(v); T.lev[TAB]=[...s2]; } }
     else if(a==='reset'){ S.tl=structuredClone(TLDEF); }
@@ -413,15 +414,15 @@ function tlControls(all){
     const days=v>span?0:v;
     tlb.textContent=days?days+' дн.':'Все';
     tmk.forEach(el=>el.classList.toggle('on',+el.dataset.v===v));
-    later(()=>{ T.days=days; saveSettings(); if(TLARGS) renderTL(...TLARGS,true); });
+    tlS().days=days; tlLater();
   };
   tmk.forEach(el=>el.onclick=()=>{ tsl.value=el.dataset.v; tsl.oninput(); });
-  box.querySelectorAll('input[data-n]').forEach(inp=>inp.oninput=()=>later(()=>{
-    const k=inp.dataset.n;
+  box.querySelectorAll('input[data-n]').forEach(inp=>inp.oninput=()=>{
+    const T=tlS(), k=inp.dataset.n;
     if(k==='q') T.q=inp.value;
     else { const f=parseFloat(String(inp.value).replace(',','.')); if(k==='smax'||k==='orSpike') T[k]=Number.isFinite(f)?f:0; else if(Number.isFinite(f)) T[k]=f; else return; }
-    saveSettings(); if(TLARGS) renderTL(...TLARGS,true);
-  }));
+    tlLater();
+  });
 }
 let TLSORT={k:'ratio',d:-1};
 function tlCalc(all,last){
@@ -453,7 +454,8 @@ function tlCalc(all,last){
   return {rows,used:ev.length-dup,dup,from,last};
 }
 function renderTL(all,last,keepCtl){
-  TLARGS=[all,last]; tlS(); if(!keepCtl) tlControls(all);
+  TLARGS=[all,last]; tlS(); const ae=document.activeElement, box=document.getElementById('tlctl');
+  if(!keepCtl&&!(box&&ae&&ae.tagName==='INPUT'&&box.contains(ae))) tlControls(all);
   const T=TLC; const R=tlCalc(all,last);
   const showAll=document.getElementById('tlall').checked;
   const q=(T.q||'').trim().toUpperCase();
