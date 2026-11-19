@@ -366,7 +366,7 @@ function render(){
 
 // ================= TopList (profit / hypLoss) =================
 // Окремі параметри (S.tl), не залежать від фільтрів сторінки. Діє лише очистка (виключені монети, дата «з», вирізаний шматок).
-const TLDEF={smin:4,smax:0,days:14,side:'all',lev:{},minN:1,top:0,q:'',bigSpike:6,dedupMin:15,win:30,minCount:3,minRatio:1.2,lossFloor:2};
+const TLDEF={smin:4,smax:0,days:14,side:'all',lev:{},minN:1,top:0,q:'',bigSpike:6,dedupMin:15,win:30,minCount:3,orSpike:6,minRatio:1.2,lossFloor:2};
 let TLC=TLDEF;
 function tlS(){ S.tl=Object.assign(structuredClone(TLDEF),S.tl||{}); TLC=S.tl; return TLC; }
 let TLARGS=null;
@@ -377,7 +377,7 @@ function tlControls(all){
   const levs=[...cnt.keys()].sort((a,b)=>(+a||1e9)-(+b||1e9));
   const sel=new Set(((T.lev||{})[TAB]||[]).map(String).filter(x=>cnt.has(x)));
   const btn=(on,txt,act,title)=>`<button class="${on?'on':''}" data-a="${act}"${title?` title="${title}"`:''}>${txt}</button>`;
-  const num=(k,w,step)=>`<input type="number" data-n="${k}" value="${T[k]||(k==='smax'?'':T[k])}" step="${step||'any'}" min="0" style="width:${w||64}px"${k==='smax'?' placeholder="∞"':''}>`;
+  const num=(k,w,step)=>`<input type="number" data-n="${k}" value="${(k==='smax'||k==='orSpike')?(+T[k]>0?T[k]:''):T[k]}" step="${step||'any'}" min="0" style="width:${w||64}px"${k==='smax'?' placeholder="∞"':k==='orSpike'?' placeholder="вимк."':''}>`;
   const PER=[[1,'1'],[3,'3'],[7,'7'],[10,'10'],[14,'14'],[21,'21'],[30,'30'],[0,'Все']];
   box.innerHTML=
    `<div class="ctl-row"><div class="ctl-sec">Дані</div>`+
@@ -392,7 +392,7 @@ function tlControls(all){
     `<div class="grp"><label>Монета</label><input type="text" data-n="q" value="${esc(T.q||'')}" placeholder="пошук" style="width:130px"></div></div>`+
    `<div class="ctl-row"><div class="ctl-sec">Правила</div>`+
     `<div class="grp"><label>Win: відкат ≥</label>${num('win',56)}<span class="muted">%</span></div>`+
-    `<div class="grp"><label>Угод ≥</label>${num('minCount',50,1)}<span class="muted">або спайк &gt;</span>${num('bigSpike',50)}<span class="muted">%</span></div>`+
+    `<div class="grp"><label>Угод ≥</label>${num('minCount',50,1)}<span class="muted">або спайк &gt;</span>${num('orSpike',56)}<span class="muted">%</span></div>`+
     `<div class="grp"><label>Ratio ≥</label>${num('minRatio',56)}</div>`+
     `<div class="grp"><label>Дублі ближче</label>${num('dedupMin',50,1)}<span class="muted">хв</span></div>`+
     `<div class="grp"><button data-a="reset">Стандартні</button></div></div>`;
@@ -406,7 +406,7 @@ function tlControls(all){
   box.querySelectorAll('input[data-n]').forEach(inp=>inp.oninput=()=>later(()=>{
     const k=inp.dataset.n;
     if(k==='q') T.q=inp.value;
-    else { const f=parseFloat(String(inp.value).replace(',','.')); if(k==='smax') T.smax=Number.isFinite(f)?f:0; else if(Number.isFinite(f)) T[k]=f; else return; }
+    else { const f=parseFloat(String(inp.value).replace(',','.')); if(k==='smax'||k==='orSpike') T[k]=Number.isFinite(f)?f:0; else if(Number.isFinite(f)) T[k]=f; else return; }
     saveSettings(); if(TLARGS) renderTL(...TLARGS,true);
   }));
 }
@@ -434,7 +434,7 @@ function tlCalc(all,last){
   const rows=[...groups.values()].map(g=>{
     const hlUsed=g.hl<TLC.lossFloor?TLC.lossFloor:g.hl;
     const ratio=g.profit/hlUsed;
-    const ok=(g.count>=TLC.minCount||(g.count>=1&&g.maxSp>TLC.bigSpike))&&ratio>=TLC.minRatio&&g.count>=Math.max(1,+T.minN||1);
+    const ok=(g.count>=TLC.minCount||(+TLC.orSpike>0&&g.count>=1&&g.maxSp>+TLC.orSpike))&&ratio>=TLC.minRatio&&g.count>=Math.max(1,+T.minN||1);
     return Object.assign(g,{hlUsed,ratio,ok});
   });
   return {rows,used:ev.length-dup,dup,from,last};
@@ -468,7 +468,7 @@ function renderTL(all,last,keepCtl){
     `Подій взято: ${R.used}; пропущено як дублі (спайк &lt; ${TLC.bigSpike}%, та сама монета й сторона ближче ${TLC.dedupMin} хв до попередньої взятої): ${R.dup}${R.other?`; без сторони Long/Short: ${R.other}`:''}.`+
     (+T.smin<4?` <span class="warn">Спайк від ${T.smin}% — нижче 4%, для таких подій hypLoss рахується як для 4–5%.</span>`:'')+`<br>`+
     `profit = відкат ≥ ${TLC.win}% ? спайк × відкат/100 : 0. hypLoss: 4–5% → відкат ≥ 50% ? 0 : 1,5; 5–6% → 1,75; ≥6% → min(спайк − 4, 100/плече). Σ hypLoss &lt; ${TLC.lossFloor} → ${TLC.lossFloor} (позначено *). `+
-    `Умова: (угод ≥ ${TLC.minCount} або max спайк &gt; ${TLC.bigSpike}%) і ratio ≥ ${TLC.minRatio}.`+
+    `Умова: ${+TLC.orSpike>0?`(угод ≥ ${TLC.minCount} або max спайк &gt; ${TLC.orSpike}%)`:`угод ≥ ${TLC.minCount}`} і ratio ≥ ${TLC.minRatio}.`+
     (noLev?`<br><span class="warn">Подій без плеча: ${noLev} — для них ліквідація не обмежує hypLoss (береться спайк − 4).</span>`:'');
 }
 document.getElementById('tlall').onchange=()=>{ if(TLARGS) renderTL(...TLARGS,true); };
