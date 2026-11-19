@@ -360,8 +360,77 @@ function render(){
   const ok=checks.every(x=>x[1]===n);
   mk.push(`<div><h2>Перевірка сум (має бути ${n})</h2>${checks.map(([k,v])=>`<div class="${v===n?'':'neg'}">${k}: ${v} — ${v===n?'зійшлося':'НЕ ЗІЙШЛОСЯ'}</div>`).join('')}</div>`);
   document.getElementById('market').innerHTML=mk.join('');
+  renderTL(c.ev,last);
   if(!ok) toast('Суми не зійшлися — перевір файл');
 }
+
+// ================= TopList (profit / hypLoss) =================
+// Власні умови, НЕ залежать від фільтрів сторінки (спайк, період, сторона, плече, мін. подій).
+// Береться очищений набір подій вкладки (виключені монети, дата «з», вирізаний шматок).
+const TLC={days:14,minSpike:4,bigSpike:6,dedupMin:15,win:30,minCount:3,minRatio:1.2,lossFloor:2};
+let TLSORT={k:'ratio',d:-1};
+function tlCalc(all,last){
+  const from=last-TLC.days*DAY;
+  const ev=all.filter(e=>e.t>=from&&e.sp>=TLC.minSpike&&(e.side==='Long'||e.side==='Short')).sort((a,b)=>a.t-b.t);
+  const lastKept=new Map(), groups=new Map(); let dup=0;
+  for(const e of ev){
+    const key=e.coin+'|'+e.side;
+    if(e.sp<TLC.bigSpike){ const lt=lastKept.get(key); if(lt!=null&&e.t-lt<TLC.dedupMin*60000){dup++;continue;} }
+    lastKept.set(key,e.t);
+    const lev=parseFloat(String(e.lev).replace(',','.'));
+    const liq=lev>0?100/lev:Infinity;
+    const isWin=e.rb>=TLC.win;
+    const profit=isWin?e.sp*(e.rb/100):0;
+    let hl;
+    if(e.sp<5) hl=e.rb>=50?0:1.5;
+    else if(e.sp<6) hl=1.75;
+    else hl=Math.max(0,Math.min(e.sp-4,liq));
+    const g=groups.get(key)||groups.set(key,{coin:e.coin,side:e.side,count:0,wins:0,profit:0,hl:0,maxSp:0,noLev:0}).get(key);
+    g.count++; if(isWin) g.wins++; g.profit+=profit; g.hl+=hl; if(e.sp>g.maxSp) g.maxSp=e.sp; if(!(lev>0)) g.noLev++;
+  }
+  const rows=[...groups.values()].map(g=>{
+    const hlUsed=g.hl<TLC.lossFloor?TLC.lossFloor:g.hl;
+    const ratio=g.profit/hlUsed;
+    const ok=(g.count>=TLC.minCount||(g.count>=1&&g.maxSp>TLC.bigSpike))&&ratio>=TLC.minRatio;
+    return Object.assign(g,{hlUsed,ratio,ok});
+  });
+  return {rows,from,last,used:ev.length-dup,dup};
+}
+function renderTL(all,last){
+  const R=tlCalc(all,last);
+  const showAll=document.getElementById('tlall').checked;
+  const q=(document.getElementById('coinq').value||'').trim().toUpperCase();
+  const kf={coin:r=>r.coin,side:r=>r.side,count:r=>r.count,wins:r=>r.wins/r.count,maxSp:r=>r.maxSp,profit:r=>r.profit,hl:r=>r.hlUsed,ratio:r=>r.ratio,ok:r=>r.ok?1:0}[TLSORT.k];
+  const view=R.rows.filter(r=>(showAll||r.ok)&&(!q||r.coin.toUpperCase().includes(q)))
+    .sort((a,b)=>{const x=kf(a),y=kf(b); return (x<y?-1:x>y?1:0)*TLSORT.d || b.ratio-a.ratio;});
+  const okN=R.rows.filter(r=>r.ok).length;
+  document.getElementById('tltitle').textContent=`TopList (profit / hypLoss) — ${okN} з ${R.rows.length} пар монета+сторона`;
+  const f2=x=>x.toFixed(2).replace('.',',');
+  const cols=[['#','#',''],['coin','Монета','l'],['side','Сторона','l'],['count','Угод',''],['wins','Win ≥'+TLC.win+'%',''],['maxSp','Max спайк',''],['profit','Σ profit',''],['hl','Σ hypLoss',''],['ratio','Ratio','']].concat(showAll?[['ok','Пройшла','l']]:[]);
+  const cell={'#':(r,i)=>i+1,coin:r=>`<b>${esc(short(r.coin))}</b>`,side:r=>r.side,count:r=>r.count,wins:r=>`${Math.round(100*r.wins/r.count)}% (${r.wins})`,maxSp:r=>p1(r.maxSp),
+    profit:r=>f2(r.profit),hl:r=>r.hl<TLC.lossFloor?`<span title="фактично ${f2(r.hl)}, підставлено ${TLC.lossFloor}">${f2(r.hlUsed)}*</span>`:f2(r.hlUsed),
+    ratio:r=>`<span class="${r.ratio>=TLC.minRatio?'pos':'neg'}">${f2(r.ratio)}</span>`,ok:r=>r.ok?'<span class="st top">так</span>':'<span class="st bl">ні</span>'};
+  document.getElementById('tl').innerHTML=`<thead><tr>${cols.map(([k,t,cl])=>`<th class="${cl} ${TLSORT.k===k?'sorted':''}" data-k="${k}">${t}${TLSORT.k===k?(TLSORT.d<0?' ↓':' ↑'):''}</th>`).join('')}</tr></thead><tbody>`+
+    (view.length?view.map((r,i)=>`<tr${r.ok?'':' style="opacity:.6"'}>${cols.map(([k,,cl])=>`<td class="${cl}">${cell[k](r,i)}</td>`).join('')}</tr>`).join(''):`<tr><td class="l" colspan="${cols.length}">Немає монет, що проходять умови</td></tr>`)+'</tbody>';
+  document.querySelectorAll('#tl th').forEach(th=>th.onclick=()=>{const k=th.dataset.k; if(k==='#') return; if(TLSORT.k===k) TLSORT.d=-TLSORT.d; else TLSORT={k,d:(k==='coin'||k==='side')?1:-1}; renderTL(all,last);});
+  // списки для бота
+  const pick=s=>R.rows.filter(r=>r.ok&&r.side===s).sort((a,b)=>b.ratio-a.ratio);
+  const LL=[['Long',pick('Long')],['Short',pick('Short')]];
+  document.getElementById('tllists').innerHTML=LL.map(([t,a],i)=>`<div class="list"><div class="head"><span class="st top">TopList ${t} — ${a.length}</span><span><button data-i="${i}" data-u="1">Копіювати з USDT</button> <button data-i="${i}" data-u="0">без USDT</button></span></div><pre>${esc(a.length?a.map(r=>r.coin).join(','):'—')}</pre></div>`).join('');
+  document.querySelectorAll('#tllists button').forEach(b=>b.onclick=()=>{const a=LL[+b.dataset.i][1]; copy(a.map(r=>b.dataset.u==='1'?r.coin:short(r.coin)).join(','));});
+  const noLev=R.rows.reduce((s,r)=>s+r.noLev,0);
+  document.getElementById('tlnote').innerHTML=`Окремий розрахунок, фільтри сторінки (спайк, період, сторона, плече, мін. подій) на нього не діють; діє лише очистка й пошук монети. `+
+    `Вікно: ${TLC.days} дн. від останньої події у файлі (${fDT(R.from)} — ${fDT(R.last)}). Подій взято: ${R.used}; пропущено як дублі (спайк &lt; ${TLC.bigSpike}%, та сама монета й сторона ближче ${TLC.dedupMin} хв до попередньої взятої): ${R.dup}.<br>`+
+    `profit = відкат ≥ ${TLC.win}% ? спайк × відкат/100 : 0. hypLoss: 4–5% → відкат ≥ 50% ? 0 : 1,5; 5–6% → 1,75; ≥6% → min(спайк − 4, 100/плече). Σ hypLoss &lt; ${TLC.lossFloor} → ${TLC.lossFloor} (позначено *). `+
+    `Умова: (угод ≥ ${TLC.minCount} або max спайк &gt; ${TLC.bigSpike}%) і ratio ≥ ${TLC.minRatio}.`+
+    (noLev?`<br><span class="warn">Подій без плеча: ${noLev} — для них ліквідація не обмежує hypLoss (береться спайк − 4).</span>`:'');
+}
+document.getElementById('tlall').onchange=()=>render();
+document.getElementById('tlcopy').onclick=()=>{
+  const ths=[...document.querySelectorAll('#tl thead th')].map(th=>th.textContent.replace(/[↓↑]/g,'').trim());
+  const trs=[...document.querySelectorAll('#tl tbody tr')];
+  copy('| '+ths.join(' | ')+' |\n|'+ths.map(()=>'---').join('|')+'|\n'+trs.map(tr=>'| '+[...tr.children].map(td=>td.textContent.trim()).join(' | ')+' |').join('\n'));
+};
 function tbl(title,first,groups){
   let i=0;
   return `<div><h2>${title}</h2><div class="tw"><table><thead><tr><th>#</th><th class="l">${first}</th><th>N</th><th>Медіана</th><th>CV</th><th>&lt;0%</th><th>≥0%</th><th>≥${S.good}%</th><th>≥35%</th><th>≥50%</th><th>Мін.</th><th>E</th></tr></thead><tbody>`+
