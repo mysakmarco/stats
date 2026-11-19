@@ -360,16 +360,61 @@ function render(){
   const ok=checks.every(x=>x[1]===n);
   mk.push(`<div><h2>Перевірка сум (має бути ${n})</h2>${checks.map(([k,v])=>`<div class="${v===n?'':'neg'}">${k}: ${v} — ${v===n?'зійшлося':'НЕ ЗІЙШЛОСЯ'}</div>`).join('')}</div>`);
   document.getElementById('market').innerHTML=mk.join('');
-  renderTL(R);
+  renderTL(c.ev,last);
   if(!ok) toast('Суми не зійшлися — перевір файл');
 }
 
 // ================= TopList (profit / hypLoss) =================
-// Діють фільтри сторінки: спайк від/до, період, сторона, плече, мін. подій, топ, пошук монети.
-const TLC={days:14,minSpike:4,bigSpike:6,dedupMin:15,win:30,minCount:3,minRatio:1.2,lossFloor:2};
+// Окремі параметри (S.tl), не залежать від фільтрів сторінки. Діє лише очистка (виключені монети, дата «з», вирізаний шматок).
+const TLDEF={smin:4,smax:0,days:14,side:'all',lev:{},minN:1,top:0,q:'',bigSpike:6,dedupMin:15,win:30,minCount:3,minRatio:1.2,lossFloor:2};
+let TLC=TLDEF;
+function tlS(){ S.tl=Object.assign(structuredClone(TLDEF),S.tl||{}); TLC=S.tl; return TLC; }
+let TLARGS=null;
+function tlSave(){ saveSettings(); if(TLARGS) renderTL(...TLARGS); }
+function tlControls(all){
+  const T=tlS(), box=document.getElementById('tlctl'); if(!box) return;
+  const cnt=new Map(); for(const e of all){ const k=String(e.lev||'?'); cnt.set(k,(cnt.get(k)||0)+1); }
+  const levs=[...cnt.keys()].sort((a,b)=>(+a||1e9)-(+b||1e9));
+  const sel=new Set(((T.lev||{})[TAB]||[]).map(String).filter(x=>cnt.has(x)));
+  const btn=(on,txt,act,title)=>`<button class="${on?'on':''}" data-a="${act}"${title?` title="${title}"`:''}>${txt}</button>`;
+  const num=(k,w,step)=>`<input type="number" data-n="${k}" value="${T[k]||(k==='smax'?'':T[k])}" step="${step||'any'}" min="0" style="width:${w||64}px"${k==='smax'?' placeholder="∞"':''}>`;
+  const PER=[[1,'1'],[3,'3'],[7,'7'],[10,'10'],[14,'14'],[21,'21'],[30,'30'],[0,'Все']];
+  box.innerHTML=
+   `<div class="ctl-row"><div class="ctl-sec">Дані</div>`+
+    `<div class="grp"><label>Спайк</label><span class="muted">від</span>${num('smin',64,0.5)}<span class="muted">до</span>${num('smax',64,0.5)}<span class="muted">%</span></div>`+
+    `<div class="grp"><label>Період</label>${PER.map(([v,t])=>btn(+T.days===v,t,'d:'+v)).join('')}<span class="muted">дн.</span></div></div>`+
+   `<div class="ctl-row"><div class="ctl-sec">Фільтри</div>`+
+    `<div class="grp"><label>Сторона</label>${SIDES.map(([v,t])=>btn(T.side===v,t,'s:'+v)).join('')}</div>`+
+    `<div class="grp"><label>Плече</label>${btn(!sel.size,'Всі','l:')}${levs.map(k=>btn(sel.has(k),k+'x','l:'+k,'подій за весь файл: '+cnt.get(k)+' · можна вибрати кілька')).join('')}</div></div>`+
+   `<div class="ctl-row"><div class="ctl-sec">Показ</div>`+
+    `<div class="grp"><label>Топ</label>${TOPS.map(([v,t])=>btn(+T.top===v,t,'t:'+v)).join('')}</div>`+
+    `<div class="grp"><label>Мін. подій</label>${num('minN',64,1)}</div>`+
+    `<div class="grp"><label>Монета</label><input type="text" data-n="q" value="${esc(T.q||'')}" placeholder="пошук" style="width:130px"></div></div>`+
+   `<div class="ctl-row"><div class="ctl-sec">Правила</div>`+
+    `<div class="grp"><label>Win: відкат ≥</label>${num('win',56)}<span class="muted">%</span></div>`+
+    `<div class="grp"><label>Угод ≥</label>${num('minCount',50,1)}<span class="muted">або спайк &gt;</span>${num('bigSpike',50)}<span class="muted">%</span></div>`+
+    `<div class="grp"><label>Ratio ≥</label>${num('minRatio',56)}</div>`+
+    `<div class="grp"><label>Дублі ближче</label>${num('dedupMin',50,1)}<span class="muted">хв</span></div>`+
+    `<div class="grp"><button data-a="reset">Стандартні</button></div></div>`;
+  box.querySelectorAll('button[data-a]').forEach(b=>b.onclick=()=>{
+    const [a,v]=b.dataset.a.split(/:(.*)/s);
+    if(a==='d') T.days=+v; else if(a==='s') T.side=v; else if(a==='t') T.top=+v;
+    else if(a==='l'){ T.lev=T.lev||{}; if(!v) T.lev[TAB]=[]; else { const s2=new Set(sel); s2.has(v)?s2.delete(v):s2.add(v); T.lev[TAB]=[...s2]; } }
+    else if(a==='reset'){ S.tl=structuredClone(TLDEF); }
+    tlSave();
+  });
+  box.querySelectorAll('input[data-n]').forEach(inp=>inp.oninput=()=>later(()=>{
+    const k=inp.dataset.n;
+    if(k==='q') T.q=inp.value;
+    else { const f=parseFloat(String(inp.value).replace(',','.')); if(k==='smax') T.smax=Number.isFinite(f)?f:0; else if(Number.isFinite(f)) T[k]=f; else return; }
+    saveSettings(); if(TLARGS) renderTL(...TLARGS,true);
+  }));
+}
 let TLSORT={k:'ratio',d:-1};
-function tlCalc(evIn){
-  const ev=evIn.filter(e=>e.side==='Long'||e.side==='Short').sort((a,b)=>a.t-b.t);
+function tlCalc(all,last){
+  const T=TLC, from=+T.days>0?last-T.days*DAY:-Infinity;
+  const levSet=new Set(((T.lev||{})[TAB]||[]).map(String));
+  const ev=all.filter(e=>e.t>=from&&e.sp>=+T.smin&&(!(+T.smax>0)||e.sp<+T.smax)&&(e.side==='Long'||e.side==='Short')&&(T.side==='all'||e.side===T.side)&&(!levSet.size||levSet.has(String(e.lev||'?')))).sort((a,b)=>a.t-b.t);
   const lastKept=new Map(), groups=new Map(); let dup=0;
   for(const e of ev){
     const key=e.coin+'|'+e.side;
@@ -389,19 +434,20 @@ function tlCalc(evIn){
   const rows=[...groups.values()].map(g=>{
     const hlUsed=g.hl<TLC.lossFloor?TLC.lossFloor:g.hl;
     const ratio=g.profit/hlUsed;
-    const ok=(g.count>=TLC.minCount||(g.count>=1&&g.maxSp>TLC.bigSpike))&&ratio>=TLC.minRatio&&g.count>=Math.max(1,+S.minN||1);
+    const ok=(g.count>=TLC.minCount||(g.count>=1&&g.maxSp>TLC.bigSpike))&&ratio>=TLC.minRatio&&g.count>=Math.max(1,+T.minN||1);
     return Object.assign(g,{hlUsed,ratio,ok});
   });
-  return {rows,used:ev.length-dup,dup,other:evIn.length-ev.length};
+  return {rows,used:ev.length-dup,dup,from,last};
 }
-function renderTL(P0){
-  const R=tlCalc(P0.ev);
+function renderTL(all,last,keepCtl){
+  TLARGS=[all,last]; tlS(); if(!keepCtl) tlControls(all);
+  const T=TLC; const R=tlCalc(all,last);
   const showAll=document.getElementById('tlall').checked;
-  const q=(document.getElementById('coinq').value||'').trim().toUpperCase();
+  const q=(T.q||'').trim().toUpperCase();
   const kf={coin:r=>r.coin,side:r=>r.side,count:r=>r.count,wins:r=>r.wins/r.count,maxSp:r=>r.maxSp,profit:r=>r.profit,hl:r=>r.hlUsed,ratio:r=>r.ratio,ok:r=>r.ok?1:0}[TLSORT.k];
   const sorted=R.rows.filter(r=>(showAll||r.ok)&&(!q||r.coin.toUpperCase().includes(q)))
     .sort((a,b)=>{const x=kf(a),y=kf(b); return (x<y?-1:x>y?1:0)*TLSORT.d || b.ratio-a.ratio;});
-  const topN=+S.top>0?+S.top:0; const view=topN?sorted.slice(0,topN):sorted;
+  const topN=+T.top>0?+T.top:0; const view=topN?sorted.slice(0,topN):sorted;
   const okN=R.rows.filter(r=>r.ok).length;
   document.getElementById('tltitle').textContent=`TopList (profit / hypLoss) — показано ${view.length}${topN&&sorted.length>topN?' (топ '+topN+')':''}; пройшли ${okN} з ${R.rows.length} пар монета+сторона`;
   const f2=x=>x.toFixed(2).replace('.',',');
@@ -411,22 +457,21 @@ function renderTL(P0){
     ratio:r=>`<span class="${r.ratio>=TLC.minRatio?'pos':'neg'}">${f2(r.ratio)}</span>`,ok:r=>r.ok?'<span class="st top">так</span>':'<span class="st bl">ні</span>'};
   document.getElementById('tl').innerHTML=`<thead><tr>${cols.map(([k,t,cl])=>`<th class="${cl} ${TLSORT.k===k?'sorted':''}" data-k="${k}">${t}${TLSORT.k===k?(TLSORT.d<0?' ↓':' ↑'):''}</th>`).join('')}</tr></thead><tbody>`+
     (view.length?view.map((r,i)=>`<tr${r.ok?'':' style="opacity:.6"'}>${cols.map(([k,,cl])=>`<td class="${cl}">${cell[k](r,i)}</td>`).join('')}</tr>`).join(''):`<tr><td class="l" colspan="${cols.length}">Немає монет, що проходять умови</td></tr>`)+'</tbody>';
-  document.querySelectorAll('#tl th').forEach(th=>th.onclick=()=>{const k=th.dataset.k; if(k==='#') return; if(TLSORT.k===k) TLSORT.d=-TLSORT.d; else TLSORT={k,d:(k==='coin'||k==='side')?1:-1}; renderTL(P0);});
+  document.querySelectorAll('#tl th').forEach(th=>th.onclick=()=>{const k=th.dataset.k; if(k==='#') return; if(TLSORT.k===k) TLSORT.d=-TLSORT.d; else TLSORT={k,d:(k==='coin'||k==='side')?1:-1}; renderTL(all,last,true);});
   // списки для бота
   const pick=s=>view.filter(r=>r.ok&&r.side===s).sort((a,b)=>b.ratio-a.ratio);
   const LL=[['Long',pick('Long')],['Short',pick('Short')]];
   document.getElementById('tllists').innerHTML=LL.map(([t,a],i)=>`<div class="list"><div class="head"><span class="st top">TopList ${t} — ${a.length}</span><span><button data-i="${i}" data-u="1">Копіювати з USDT</button> <button data-i="${i}" data-u="0">без USDT</button></span></div><pre>${esc(a.length?a.map(r=>r.coin).join(','):'—')}</pre></div>`).join('');
   document.querySelectorAll('#tllists button').forEach(b=>b.onclick=()=>{const a=LL[+b.dataset.i][1]; copy(a.map(r=>b.dataset.u==='1'?r.coin:short(r.coin)).join(','));});
   const noLev=R.rows.reduce((s,r)=>s+r.noLev,0);
-  const spT=(P0.smax>0?`${P0.smin}–${P0.smax}%`:`від ${P0.smin}%`).replace(/\./g,',');
-  document.getElementById('tlnote').innerHTML=`Фільтри сторінки діють: спайк ${spT}, ${P0.days>0?P0.days+' дн. ('+fDT(P0.from)+' — '+fDT(P0.last)+')':'весь період'}, сторона ${S.side==='all'?'всі':S.side}, плече ${((S.lev||{})[TAB]||[]).length?S.lev[TAB].map(x=>x+'x').join(', '):'всі'}, мін. подій ${Math.max(1,+S.minN||1)}, топ ${topN||'всі'}. `+
+  document.getElementById('tlnote').innerHTML=`Параметри цієї таблиці окремі від фільтрів сторінки (зберігаються в браузері). Період: ${+T.days>0?T.days+' дн. ('+fDT(R.from)+' — '+fDT(R.last)+')':'весь період'}, відлік від останньої події у файлі. `+
     `Подій взято: ${R.used}; пропущено як дублі (спайк &lt; ${TLC.bigSpike}%, та сама монета й сторона ближче ${TLC.dedupMin} хв до попередньої взятої): ${R.dup}${R.other?`; без сторони Long/Short: ${R.other}`:''}.`+
-    (P0.smin<TLC.minSpike?` <span class="warn">Спайк від ${P0.smin}% — нижче ${TLC.minSpike}%, для таких подій hypLoss рахується як для 4–5%.</span>`:'')+`<br>`+
+    (+T.smin<4?` <span class="warn">Спайк від ${T.smin}% — нижче 4%, для таких подій hypLoss рахується як для 4–5%.</span>`:'')+`<br>`+
     `profit = відкат ≥ ${TLC.win}% ? спайк × відкат/100 : 0. hypLoss: 4–5% → відкат ≥ 50% ? 0 : 1,5; 5–6% → 1,75; ≥6% → min(спайк − 4, 100/плече). Σ hypLoss &lt; ${TLC.lossFloor} → ${TLC.lossFloor} (позначено *). `+
     `Умова: (угод ≥ ${TLC.minCount} або max спайк &gt; ${TLC.bigSpike}%) і ratio ≥ ${TLC.minRatio}.`+
     (noLev?`<br><span class="warn">Подій без плеча: ${noLev} — для них ліквідація не обмежує hypLoss (береться спайк − 4).</span>`:'');
 }
-document.getElementById('tlall').onchange=()=>render();
+document.getElementById('tlall').onchange=()=>{ if(TLARGS) renderTL(...TLARGS,true); };
 document.getElementById('tlcopy').onclick=()=>{
   const ths=[...document.querySelectorAll('#tl thead th')].map(th=>th.textContent.replace(/[↓↑]/g,'').trim());
   const trs=[...document.querySelectorAll('#tl tbody tr')];
