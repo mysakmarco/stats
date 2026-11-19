@@ -130,6 +130,18 @@ th.xm,td.xm{color:var(--xm)}
 #dmarks span{position:absolute;transform:translateX(-50%);cursor:pointer;white-space:nowrap}
 #dmarks span:hover{color:var(--text)}
 #dmarks span.on{color:var(--acc);font-weight:600}
+
+/* топ-лист + панель налаштувань праворуч */
+.topwrap{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
+.topmain{min-width:0;max-width:100%}
+.setbox{flex:0 1 400px;min-width:320px}
+.settbl{table-layout:auto}
+.settbl td{padding:4px 9px;text-align:left;white-space:normal}
+.settbl td.v{text-align:right;width:1%}
+.settbl tr.g td{background:var(--panel2);color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;font-weight:600;padding:5px 9px}
+.settbl input{width:84px;padding:3px 6px;text-align:right}
+.settbl input[type=text]{width:170px;text-align:left}
+.settbl tr:not(.g):hover td{background:var(--hov)}
 </style>
 </head>
 <body>
@@ -198,13 +210,25 @@ th.xm,td.xm{color:var(--xm)}
     <div class="sum" id="sum"></div>
     <div class="cards" id="cards"></div>
 
-    <section>
-      <div style="display:flex;justify-content:space-between;align-items:end;gap:10px;flex-wrap:wrap">
-        <h2 id="toptitle">Топ-лист</h2>
-        <div class="grp"><button id="copymd">Копіювати таблицю (Markdown)</button></div>
+    <section class="topwrap">
+      <div class="topmain">
+        <div style="display:flex;justify-content:space-between;align-items:end;gap:10px;flex-wrap:wrap">
+          <h2 id="toptitle">Топ-лист</h2>
+          <div class="grp"><button id="copymd">Копіювати таблицю (Markdown)</button></div>
+        </div>
+        <div class="tw"><table id="coins"></table></div>
+        <div class="note" id="coinnote"></div>
       </div>
-      <div class="tw"><table id="coins"></table></div>
-      <div class="note" id="coinnote"></div>
+      <aside class="setbox">
+        <div style="display:flex;justify-content:space-between;align-items:end;gap:10px">
+          <h2>Налаштування таблиці</h2>
+          <button id="reset" title="Повернути стандартні значення">Скинути</button>
+        </div>
+        <div class="tw"><table id="settings" class="settbl"></table></div>
+        <div class="note">Зберігаються в цьому браузері. Зміна одразу перераховує таблицю.<br>
+        E = (добрі − m·середні − k·мінуси) / N; добрі = відкат ≥ порогу доброго відкату, середні = від 0 до порогу, мінуси = &lt;0%. k = стоп/тейк, m — збиток на недовідкаті в частках тейку. Значення k і m умовні.<br>
+        score = 0.4·≥поріг + 0.3·≥35% + 0.3·медіана − 2·&lt;0% − 20·CV — за ним монети йдуть від найкращої до найгіршої.</div>
+      </aside>
     </section>
 
     <section>
@@ -228,13 +252,6 @@ th.xm,td.xm{color:var(--xm)}
       <div class="grid2" id="market"></div>
     </details>
 
-    <details>
-      <summary>Налаштування (зберігаються в цьому браузері)</summary>
-      <div class="set" id="settings"></div>
-      <div style="margin-top:10px;display:flex;gap:8px"><button id="reset">Скинути до стандартних</button></div>
-      <div class="note">E = (добрі − m·середні − k·мінуси) / N; добрі = відкат ≥ порогу доброго відкату (за замовчуванням 21%), середні = від 0 до порогу, мінуси = &lt;0%. k = стоп/тейк, m — збиток на недовідкаті в частках тейку. Значення k і m умовні.<br>
-      score = 0.4·≥поріг + 0.3·≥35% + 0.3·медіана − 2·&lt;0% − 20·CV — за ним монети йдуть від найкращої до найгіршої.</div>
-    </details>
   </div>
 </main>
 <div id="modal"><div class="box" id="mbox"></div></div>
@@ -257,6 +274,6 @@ sel.value=root.dataset.theme||'dark';
 sel.onchange=()=>{const t=sel.value; if(t==='dark') delete root.dataset.theme; else root.dataset.theme=t; try{localStorage.setItem('moonstats_theme',t);}catch(e){}};})();
 </script>
 <script src="config.js?v=20261116b"></script>
-<script src="app.js?v=20261119d"></script>
+<script src="app.js?v=20261119e"></script>
 </body>
 </html>

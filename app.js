@@ -581,7 +581,13 @@ function syncControls(){
 }
 function buildSettings(){
   const box=document.getElementById('settings');
-  box.innerHTML=SET_FIELDS.map(([k,t,ty])=>`<label>${t}<input data-k="${k}" type="${ty}" ${ty==='number'?'step="any"':''} value="${esc(S[k])}" style="${ty==='text'?'width:200px':''}"></label>`).join('');
+  const GR=[['Дані',['dateFrom','cutFrom','cutTo','exclude']],['Оцінка',['good','k','m']],['Топ',['top19','topMed','topCv','topNeg']],['Blacklist',['bl19','blMed','blCv','blMin','blNeg']]];
+  const F=new Map(SET_FIELDS.map(f=>[f[0],f]));
+  const row=k=>{ const f=F.get(k); if(!f) return ''; const [,t,ty]=f; const lbl=t.replace(/^(Топ|Blacklist): /,'');
+    return `<tr><td>${esc(lbl)}</td><td class="v"><input data-k="${k}" type="${ty}" ${ty==='number'?'step="any"':''} value="${esc(S[k])}"></td></tr>`; };
+  const used=new Set(GR.flatMap(g=>g[1]));
+  const rest=SET_FIELDS.map(f=>f[0]).filter(k=>!used.has(k));
+  box.innerHTML='<tbody>'+GR.map(([g,ks])=>`<tr class="g"><td colspan="2">${g}</td></tr>`+ks.map(row).join('')).join('')+(rest.length?'<tr class="g"><td colspan="2">Інше</td></tr>'+rest.map(row).join(''):'')+'</tbody>';
   box.querySelectorAll('input').forEach(inp=>inp.onchange=()=>{ const k=inp.dataset.k; S[k]=inp.type==='number'?+inp.value:inp.value; saveSettings(); render(); });
 }
 function buildTabs(){
