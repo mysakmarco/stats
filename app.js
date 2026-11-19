@@ -398,12 +398,20 @@ function tlControls(all){
     `<div class="grp"><label>Угод ≥</label>${num('minCount',50,1)}<span class="muted">або спайк &gt;</span>${num('orSpike',56)}<span class="muted">%</span></div>`+
     `<div class="grp"><label>Ratio ≥</label>${num('minRatio',56)}</div>`+
     `<div class="grp"><label>Дублі ближче</label>${num('dedupMin',50,1)}<span class="muted">хв</span></div>`+
-    `<div class="grp"><button data-a="reset">Стандартні</button></div></div>`;
+    `<div class="grp"><button data-a="reset">Стандартні</button></div></div>`+
+   `<div class="ctl-row"><div class="ctl-sec">Мої</div><div class="grp" style="flex-wrap:wrap">`+
+    (S.tlPresets||[]).map((p,i)=>`<span class="tlp"><button data-a="p:${i}" title="застосувати">${esc(p.name)}</button><button data-a="x:${i}" title="видалити" class="tlpx">×</button></span>`).join('')+
+    `<input type="text" class="tlpname" placeholder="назва конфігурації" style="width:160px"><button data-a="save">Зберегти поточну</button></div></div>`;
   box.querySelectorAll('button[data-a]').forEach(b=>b.onclick=()=>{
+    if(document.activeElement&&document.activeElement.blur) document.activeElement.blur();
     const T=tlS(); const [a,v]=b.dataset.a.split(/:(.*)/s);
     if(a==='d') T.days=+v; else if(a==='s') T.side=v; else if(a==='t') T.top=+v;
     else if(a==='l'){ T.lev=T.lev||{}; if(!v) T.lev[TAB]=[]; else { const s2=new Set(sel); s2.has(v)?s2.delete(v):s2.add(v); T.lev[TAB]=[...s2]; } }
     else if(a==='reset'){ S.tl=structuredClone(TLDEF); }
+    else if(a==='save'){ const nm=(box.querySelector('.tlpname').value||'').trim()||('Конфіг '+((S.tlPresets||[]).length+1));
+      S.tlPresets=(S.tlPresets||[]).filter(p=>p.name!==nm); const cfg=structuredClone(T); delete cfg.q; S.tlPresets.push({name:nm,cfg}); toast('Збережено: '+nm); }
+    else if(a==='p'){ const pr=(S.tlPresets||[])[+v]; if(pr){ const q=T.q; S.tl=Object.assign(structuredClone(TLDEF),structuredClone(pr.cfg),{q}); toast('Застосовано: '+pr.name); } }
+    else if(a==='x'){ (S.tlPresets||[]).splice(+v,1); }
     tlSave();
   });
   const tsl=box.querySelector('.tl-dsl'), tlb=box.querySelector('.tl-dlabel'), tmk=box.querySelectorAll('.tl-marks span');
@@ -748,7 +756,7 @@ document.getElementById('dslider').oninput=e=>{
 document.getElementById('minn').oninput=e=>later(()=>{const v=parseInt(e.target.value,10); if(v>=1){S.minN=v;saveSettings();render();}});
 document.getElementById('coinq').oninput=()=>later(render);
 document.getElementById('copymd').onclick=copyMarkdown;
-document.getElementById('reset').onclick=()=>{S=structuredClone(DEF);saveSettings();buildSettings();syncControls();render();};
+document.getElementById('reset').onclick=()=>{const keep=S.tlPresets; S=structuredClone(DEF); if(keep) S.tlPresets=keep;saveSettings();buildSettings();syncControls();render();};
 document.addEventListener('keydown',e=>{if(e.key==='Escape') document.getElementById('modal').style.display='none';});
 if(typeof DecompressionStream==='undefined'){ document.getElementById('empty').innerHTML='<span class="neg">Цей браузер застарий: потрібен Chrome, Edge або Firefox свіжої версії.</span>'; }
 
