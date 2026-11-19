@@ -263,7 +263,8 @@ function render(){
     const sd=s=>{const x=es.filter(e=>e.side===s); return x.length?{k:x.filter(e=>e.rb>=S.good).length,n:x.length}:null;};
     const levs=[...new Set(es.map(e=>e.lev))].sort((a,b)=>(+a||1e9)-(+b||1e9));
     const xs=(CACHE[TAB].xcols||[]).map((c,j)=>medianOf(es.map(e=>e.x?e.x[j]:null)));
-    rows.push({coin,m,st:status(m),L:sd('Long'),S:sd('Short'),lev:levs.join(', '),xs});
+    const pn=es.map(netPct), pnl=pn.reduce((a,b)=>a+b,0);
+    rows.push({coin,pnl,pnla:pnl/es.length,liq:pn.filter((v,i)=>v<0&&es[i].sp*es[i].rb/100<v-1e-9).length,m,st:status(m),L:sd('Long'),S:sd('Short'),lev:levs.join(', '),xs});
   }
   // ранг за score (від найкращої до найгіршої)
   rows.sort((a,b)=>b.m.score-a.m.score); rows.forEach((r,i)=>r.rank=i+1);
@@ -278,7 +279,7 @@ function render(){
     `<span class="note">Очистка: дані з ${esc(S.dateFrom)}; вирізано ${c.rmCut} подій (${esc(S.cutFrom)} — ${esc(S.cutTo)}); виключено ${c.rmEx} рядків монет (${esc(S.exclude)}); старіших за дату — ${c.rmOld}; нерозпізнаних — ${c.bad}.</span>`;
   // таблиця монет
   const q=R.q; let view=rows.filter(r=>!q||r.coin.toUpperCase().includes(q));
-  const keyf={rank:r=>r.rank,coin:r=>r.coin,n:r=>r.m.n,med:r=>r.m.med,cv:r=>r.m.cv??99,g0:r=>r.m.g0/r.m.n,g19:r=>r.m.g19/r.m.n,g35:r=>r.m.g35/r.m.n,g50:r=>r.m.g50/r.m.n,neg:r=>r.m.neg/r.m.n,min:r=>r.m.min,e:r=>r.m.e,score:r=>r.m.score,L:r=>(r.L?r.L.n:0)/r.m.n,S:r=>(r.S?r.S.n:0)/r.m.n,st:r=>({top:0,edge:1,mid:2,bl:3})[r.st]};
+  const keyf={rank:r=>r.rank,coin:r=>r.coin,n:r=>r.m.n,med:r=>r.m.med,cv:r=>r.m.cv??99,g0:r=>r.m.g0/r.m.n,g19:r=>r.m.g19/r.m.n,g35:r=>r.m.g35/r.m.n,g50:r=>r.m.g50/r.m.n,neg:r=>r.m.neg/r.m.n,min:r=>r.m.min,e:r=>r.m.e,score:r=>r.m.score,pnl:r=>r.pnl,pnla:r=>r.pnla,L:r=>(r.L?r.L.n:0)/r.m.n,S:r=>(r.S?r.S.n:0)/r.m.n,st:r=>({top:0,edge:1,mid:2,bl:3})[r.st]};
   const XS=xSel(), XALL=(CACHE[TAB].xcols||[]);
   XS.forEach(c=>{ const j=XALL.indexOf(c); keyf['x'+j]=r=>r.xs&&r.xs[j]!=null?r.xs[j]:(sortDir<0?-Infinity:Infinity); });
   const kf=keyf[sortKey]||keyf.score;
@@ -295,7 +296,7 @@ function render(){
   const nSel=selEv.length, mSel=nSel?metrics(selEv.map(e=>e.rb)):null;
   const selLbl=nSel<n?' (у вибірці)':'';
   document.getElementById('cards').innerHTML=!nSel?'<div class="card"><div class="v">0</div><div class="l">подій за цими умовами</div></div>':[
-    [nSel,'подій'+selLbl],[shown.length,'монет'+selLbl],[p1(mSel.med),'медіана відкату'],[P(mSel.neg,nSel),'<0%'],[P(mSel.g19,nSel),'≥'+S.good+'%'],[sg2(mSel.e),'E (умовне)'],
+    [nSel,'подій'+selLbl],[shown.length,'монет'+selLbl],[p1(mSel.med),'медіана відкату'],[P(mSel.neg,nSel),'<0%'],[P(mSel.g19,nSel),'≥'+S.good+'%'],[sg2(mSel.e),'E (умовне)'],[(()=>{const t=selEv.reduce((a,e)=>a+netPct(e),0);return `<span class="${t<0?'neg':'pos'}">${sg2(t)}%</span>`;})(),'профіт Σ (по $100: $)'],
     [white.length+' / '+edge.length+' / '+black.length,'топ / на межі / blacklist']
   ].map(([v,l])=>`<div class="card"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('')+
   (nSel<n?`<div class="card" style="opacity:.75"><div class="v">${n} / ${coinsAll.size}</div><div class="l">усього подій / монет за період</div></div>`:'');
@@ -308,6 +309,8 @@ function render(){
     med:r=>`<td>${p1(r.m.med)}</td>`, cv:r=>`<td>${cvs(r.m.cv)}</td>`, neg:r=>`<td class="${r.m.neg?'neg':''}">${P(r.m.neg,r.m.n)}</td>`,
     g0:r=>`<td>${P(r.m.g0,r.m.n)}</td>`, g19:r=>`<td>${P(r.m.g19,r.m.n)}</td>`, g35:r=>`<td>${P(r.m.g35,r.m.n)}</td>`, g50:r=>`<td>${P(r.m.g50,r.m.n)}</td>`,
     min:r=>`<td class="${r.m.min<0?'neg':'pos'}">${sg(r.m.min)}</td>`, e:r=>`<td class="${r.m.e<0?'neg':''}">${sg2(r.m.e)}</td>`,
+    pnl:r=>`<td class="${r.pnl<0?'neg':'pos'}" title="сума чистих % по ${r.m.n} позиціях = $ при позиціях по $100${r.liq?'; ліквідацій: '+r.liq:''}">${sg2(r.pnl)}%</td>`,
+    pnla:r=>`<td class="${r.pnla<0?'neg':'pos'}" title="середній чистий % на позицію">${sg2(r.pnla)}%</td>`,
     L:r=>`<td title="${r.L?'≥'+S.good+'% на Long: '+sd(r.L):''}">${ls(r.L,r.m.n)}</td>`, S:r=>`<td title="${r.S?'≥'+S.good+'% на Short: '+sd(r.S):''}">${ls(r.S,r.m.n)}</td>`, lev:r=>`<td>${esc(r.lev)}</td>`,
     st:r=>`<td class="l"><span class="st ${r.st}">${STN[r.st]}</span>${r.m.n<10?' <span class="muted" title="мала вибірка">мало</span>':''}</td>`
   };
@@ -542,9 +545,12 @@ function coinModal(coin){
   };
 }
 
+// чистий % профіту позиції від ролбеку: позиція проти спайку, без плеча на розмір (умовно $100)
+// ролбек ≥0 → спайк×ролбек/100; ролбек <0 → −спайк×|ролбек|/100, але не більше ліквідації 100/плече
+function netPct(e){ const lev=parseFloat(String(e.lev).replace(',','.')); const v=e.sp*e.rb/100; if(v>=0) return v; return lev>0?Math.max(v,-100/lev):v; }
 function mainCols(){
   // [ключ, назва, клас, завжди видима]
-  return [['rank','#','',true],['coin','Монета','l',true],['lev','Плече'],['n','N'],['med','Медіана'],['cv','CV'],['neg','<0%'],['g0','≥0%'],['g19','≥'+S.good+'%'],['g35','≥35%'],['g50','≥50%'],['min','Мін.'],['e','E'],['L','Long %'],['S','Short %'],['st','Статус','l']];
+  return [['rank','#','',true],['coin','Монета','l',true],['lev','Плече'],['n','N'],['med','Медіана'],['cv','CV'],['neg','<0%'],['g0','≥0%'],['g19','≥'+S.good+'%'],['g35','≥35%'],['g50','≥50%'],['min','Мін.'],['e','E'],['pnl','Профіт Σ'],['pnla','Профіт сер.'],['L','Long %'],['S','Short %'],['st','Статус','l']];
 }
 function buildColPanel(){
   const box=document.getElementById('colpanel'); if(!box||!CACHE[TAB]) return;
