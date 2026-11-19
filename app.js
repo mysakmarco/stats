@@ -368,7 +368,7 @@ function render(){
 // Окремі параметри (S.tl), не залежать від фільтрів сторінки. Діє лише очистка (виключені монети, дата «з», вирізаний шматок).
 const TLDEF={smin:4,smax:0,days:14,side:'all',lev:{},minN:1,top:0,q:'',bigSpike:6,dedupMin:15,win:30,minCount:3,orSpike:6,minRatio:1.2,lossFloor:2};
 let TLC=TLDEF;
-function tlS(){ S.tl=Object.assign(structuredClone(TLDEF),S.tl||{}); TLC=S.tl; return TLC; }
+function tlS(){ if(!S.tl||typeof S.tl!=='object') S.tl={}; for(const k in TLDEF) if(!(k in S.tl)) S.tl[k]=structuredClone(TLDEF[k]); TLC=S.tl; return TLC; }
 let TLARGS=null;
 function tlSave(){ saveSettings(); if(TLARGS) renderTL(...TLARGS); }
 function tlControls(all){
