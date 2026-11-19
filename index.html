@@ -131,17 +131,23 @@ th.xm,td.xm{color:var(--xm)}
 #dmarks span:hover{color:var(--text)}
 #dmarks span.on{color:var(--acc);font-weight:600}
 
-/* топ-лист + панель налаштувань праворуч */
-.topwrap{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
-.topmain{min-width:0;max-width:100%}
-.setbox{flex:0 1 400px;min-width:320px}
+/* топ-лист + панель налаштувань праворуч, такої ж висоти як таблиця */
+.topwrap{display:flex;gap:18px;align-items:stretch}
+.topmain{flex:1 1 0;min-width:0}
+.tblcol{display:inline-grid;max-width:100%}
+.tblcol>.tw{display:block!important}
+.setbox{flex:0 0 380px;margin-left:auto;position:relative;min-height:320px}
+.setin{position:absolute;inset:0;display:flex;flex-direction:column}
+.setin>.tw{flex:1 1 auto;min-height:0;overflow:auto}
 .settbl{table-layout:auto}
-.settbl td{padding:4px 9px;text-align:left;white-space:normal}
+.settbl td{padding:3px 9px;text-align:left;white-space:normal;font-size:13px}
 .settbl td.v{text-align:right;width:1%}
-.settbl tr.g td{background:var(--panel2);color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;font-weight:600;padding:5px 9px}
-.settbl input{width:84px;padding:3px 6px;text-align:right}
-.settbl input[type=text]{width:170px;text-align:left}
+.settbl tr.g td{position:sticky;top:0;z-index:1;background:var(--panel2);color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;font-weight:600;padding:4px 9px}
+.settbl input{width:80px;padding:2px 6px;text-align:right}
+.settbl input[type=text]{width:160px;text-align:left}
 .settbl tr:not(.g):hover td{background:var(--hov)}
+.setnote{padding:6px 9px 8px;margin:0}
+@media (max-width:1000px){.topwrap{flex-wrap:wrap}.setbox{flex:1 1 100%;margin-left:0;position:static;min-height:0}.setin{position:static}}
 </style>
 </head>
 <body>
@@ -212,23 +218,24 @@ th.xm,td.xm{color:var(--xm)}
 
     <section class="topwrap">
       <div class="topmain">
+        <div class="tblcol">
         <div style="display:flex;justify-content:space-between;align-items:end;gap:10px;flex-wrap:wrap">
           <h2 id="toptitle">Топ-лист</h2>
           <div class="grp"><button id="copymd">Копіювати таблицю (Markdown)</button></div>
         </div>
         <div class="tw"><table id="coins"></table></div>
+        </div>
         <div class="note" id="coinnote"></div>
       </div>
-      <aside class="setbox">
+      <aside class="setbox"><div class="setin">
         <div style="display:flex;justify-content:space-between;align-items:end;gap:10px">
           <h2>Налаштування таблиці</h2>
           <button id="reset" title="Повернути стандартні значення">Скинути</button>
         </div>
-        <div class="tw"><table id="settings" class="settbl"></table></div>
-        <div class="note">Зберігаються в цьому браузері. Зміна одразу перераховує таблицю.<br>
+        <div class="tw"><table id="settings" class="settbl"></table><div class="note setnote">Зберігаються в цьому браузері. Зміна одразу перераховує таблицю.<br>
         E = (добрі − m·середні − k·мінуси) / N; добрі = відкат ≥ порогу доброго відкату, середні = від 0 до порогу, мінуси = &lt;0%. k = стоп/тейк, m — збиток на недовідкаті в частках тейку. Значення k і m умовні.<br>
-        score = 0.4·≥поріг + 0.3·≥35% + 0.3·медіана − 2·&lt;0% − 20·CV — за ним монети йдуть від найкращої до найгіршої.</div>
-      </aside>
+        score = 0.4·≥поріг + 0.3·≥35% + 0.3·медіана − 2·&lt;0% − 20·CV — за ним монети йдуть від найкращої до найгіршої.</div></div>
+      </div></aside>
     </section>
 
     <section>
