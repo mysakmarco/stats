@@ -378,11 +378,13 @@ function tlControls(all){
   const sel=new Set(((T.lev||{})[TAB]||[]).map(String).filter(x=>cnt.has(x)));
   const btn=(on,txt,act,title)=>`<button class="${on?'on':''}" data-a="${act}"${title?` title="${title}"`:''}>${txt}</button>`;
   const num=(k,w,step)=>`<input type="number" data-n="${k}" value="${(k==='smax'||k==='orSpike')?(+T[k]>0?T[k]:''):T[k]}" step="${step||'any'}" min="0" style="width:${w||64}px"${k==='smax'?' placeholder="∞"':k==='orSpike'?' placeholder="вимк."':''}>`;
-  const PER=[[1,'1'],[3,'3'],[7,'7'],[10,'10'],[14,'14'],[21,'21'],[30,'30'],[0,'Все']];
+  // повзунок періоду (як угорі сторінки): 1…N днів, крайнє праве = «Все»
+  let mn=Infinity,mx=-Infinity; for(const e of all){ if(e.t<mn) mn=e.t; if(e.t>mx) mx=e.t; }
+  const span=all.length?Math.max(1,Math.ceil((mx-mn)/DAY)):60, tlDays=+T.days||0, tlTicks=dTicks(span);
   box.innerHTML=
    `<div class="ctl-row"><div class="ctl-sec">Дані</div>`+
     `<div class="grp"><label>Спайк</label><span class="muted">від</span>${num('smin',64,0.5)}<span class="muted">до</span>${num('smax',64,0.5)}<span class="muted">%</span></div>`+
-    `<div class="grp"><label>Період</label>${PER.map(([v,t])=>btn(+T.days===v,t,'d:'+v)).join('')}<span class="muted">дн.</span></div></div>`+
+    `<div class="grp"><label>Період</label><span class="dsl-wrap"><input class="tl-dsl" type="range" min="1" max="${span+1}" step="1" value="${tlDays>0&&tlDays<=span?tlDays:span+1}"><span class="dmarks tl-marks">${tlTicks.map(v=>`<span data-v="${v}" class="${(tlDays>0&&tlDays<=span?tlDays:span+1)===v?'on':''}" style="left:${((v-1)/span)*100}%">${v>span?'Все':v}</span>`).join('')}</span></span><b class="tl-dlabel" style="min-width:60px;font-weight:600">${tlDays>0&&tlDays<=span?tlDays+' дн.':'Все'}</b></div></div>`+
    `<div class="ctl-row"><div class="ctl-sec">Фільтри</div>`+
     `<div class="grp"><label>Сторона</label>${SIDES.map(([v,t])=>btn(T.side===v,t,'s:'+v)).join('')}</div>`+
     `<div class="grp"><label>Плече</label>${btn(!sel.size,'Всі','l:')}${levs.map(k=>btn(sel.has(k),k+'x','l:'+k,'подій за весь файл: '+cnt.get(k)+' · можна вибрати кілька')).join('')}</div></div>`+
@@ -403,6 +405,17 @@ function tlControls(all){
     else if(a==='reset'){ S.tl=structuredClone(TLDEF); }
     tlSave();
   });
+  const tsl=box.querySelector('.tl-dsl'), tlb=box.querySelector('.tl-dlabel'), tmk=box.querySelectorAll('.tl-marks span');
+  tsl.oninput=()=>{
+    let v=+tsl.value; const tol=Math.max(2,Math.round(span*0.03));
+    let best=null; for(const t of tlTicks){ if(Math.abs(t-v)<=tol&&(best==null||Math.abs(t-v)<Math.abs(best-v))) best=t; }
+    if(best!=null&&best!==v){ v=best; tsl.value=v; }
+    const days=v>span?0:v;
+    tlb.textContent=days?days+' дн.':'Все';
+    tmk.forEach(el=>el.classList.toggle('on',+el.dataset.v===v));
+    later(()=>{ T.days=days; saveSettings(); if(TLARGS) renderTL(...TLARGS,true); });
+  };
+  tmk.forEach(el=>el.onclick=()=>{ tsl.value=el.dataset.v; tsl.oninput(); });
   box.querySelectorAll('input[data-n]').forEach(inp=>inp.oninput=()=>later(()=>{
     const k=inp.dataset.n;
     if(k==='q') T.q=inp.value;
