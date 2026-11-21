@@ -79,7 +79,7 @@ input,select{background:var(--panel2);border:1px solid var(--line);color:var(--t
 .mkts{display:flex;flex-wrap:wrap;gap:8px}
 .mkts button{background:var(--panel2);border:1px solid var(--line);color:var(--mute);border-radius:999px;padding:8px 14px;font:600 13px var(--sans);cursor:pointer}
 .mkts button.on{background:var(--accent);border-color:var(--accent);color:#10151f}
-nav{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);background:var(--panel)}
+nav{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);background:var(--panel)}
 nav button{background:none;border:0;color:var(--mute);padding:12px 4px 14px;font:600 13px var(--sans);cursor:pointer;border-top:2px solid transparent}
 nav button.act{color:var(--accent);border-top-color:var(--accent)}
 nav button em{font-style:normal;font:11px var(--mono);margin-left:4px;opacity:.8}
@@ -115,6 +115,20 @@ nav button em{font-style:normal;font:11px var(--mono);margin-left:4px;opacity:.8
 .btn2{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px 12px;font:600 14px var(--sans);cursor:pointer}
 .subh{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.6px;margin:6px 0 -4px}
 .card.SKIP{opacity:.7}
+.tbl{table-layout:fixed;width:100%;border-collapse:collapse;font-size:12.5px;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.tbl th,.tbl td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.tbl th{font-size:10px;color:var(--mute);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.tbl th:first-child,.tbl td:first-child{text-align:left;width:30%}
+.tbl td.pos{color:var(--long)}.tbl td.neg{color:var(--short)}
+.wr{display:inline-block;width:38px;height:5px;border-radius:3px;background:var(--panel2);vertical-align:middle;margin-left:5px;overflow:hidden}
+.wr i{display:block;height:100%;background:var(--long)}
+.jr{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--mute);border-radius:10px;padding:8px 10px;font-size:13px}
+.jr.win{border-left-color:var(--long)}.jr.loss{border-left-color:var(--short)}.jr.open{border-left-color:var(--accent)}
+.jr small{color:var(--mute);font-size:11px;display:block}
+.jr b{font:600 13px var(--mono)}
+.jr .res{text-align:right;white-space:nowrap}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btns .btn2{flex:1;padding:8px 10px;font-size:13px}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
 </style>
 </head>
@@ -138,6 +152,12 @@ nav button em{font-style:normal;font:11px var(--mono);margin-left:4px;opacity:.8
     <section class="view" id="v-radar">
       <p class="note">Sweep уже був, структура ще не зламана. Входу немає, поки не буде BOS тілом.</p>
       <div id="radar" class="view act"></div>
+    </section>
+    <section class="view" id="v-stats">
+      <p class="note">Кожен сетап з вкладки «Сетапи» записується сюди. Результат рахується по свічках: налився ліміт → що першим, SL чи TP. Без часткової фіксації на FTA і без комісій; якщо SL і TP в одній свічці, рахується стоп.</p>
+      <div id="stats-body"></div>
+      <div class="btns"><button class="btn2" id="j-upd" type="button">Оновити результати</button><button class="btn2" id="j-exp" type="button">Експорт</button><button class="btn2" id="j-imp" type="button">Імпорт</button><button class="btn2" id="j-clr" type="button">Очистити</button></div>
+      <input type="file" id="j-file" accept=".json,application/json" hidden>
     </section>
     <section class="view" id="v-settings">
       <label>Мова / Language
@@ -227,13 +247,14 @@ nav button em{font-style:normal;font:11px var(--mono);margin-left:4px;opacity:.8
   <nav>
     <button data-v="setups" class="act">Сетапи<em id="n-setups"></em></button>
     <button data-v="radar">Радар<em id="n-radar"></em></button>
+    <button data-v="stats">Статистика<em id="n-stats"></em></button>
     <button data-v="settings">Налаштування</button>
   </nav>
 </div>
 <div id="toast"></div>
 <script>
 /*CORE*/
-const UI_EN={"Скрінер": "Screener", "Сканувати ринок": "Scan market", "Крипта, форекс, метали, індекси. Дані беруться з біржі напряму.": "Crypto, forex, metals, indices. Data comes straight from the exchange.", "Sweep уже був, структура ще не зламана. Входу немає, поки не буде BOS тілом.": "Sweep happened, structure not broken yet. No entry until a body BOS.", "Скан": "Scan", "Біржа": "Exchange", "Авто (Bybit, якщо ні, то Binance)": "Auto (Bybit, else Binance)", "Режим": "Mode", "Інтрадей: D1 / 4H / M15": "Intraday: D1 / 4H / M15", "Скальп: 4H / 1H / M5": "Scalp: 4H / 1H / M5", "Ринки": "Markets", "Крипта": "Crypto", "Форекс": "Forex", "Метали": "Metals", "Індекси": "Indices", "Акції": "Stocks", "Форекс: EURUSD, GBPUSD, USDJPY (Bybit), AUDUSD, USDCAD, USDCHF, EURCHF (Kraken). Метали: золото, срібло. Індекси: NAS100, GER40, SPX500, US30, UK100 (Gate). Джерело видно на картці. Це котирування крипто-бірж: ціна може на кілька пунктів відрізнятись від брокера, звіряй рівні на своєму графіку.": "Forex: EURUSD, GBPUSD, USDJPY (Bybit), AUDUSD, USDCAD, USDCHF, EURCHF (Kraken). Metals: gold, silver. Indices: NAS100, GER40, SPX500, US30, UK100 (Gate). Source is shown on the card. These are crypto-exchange quotes: price may differ from your broker by a few points, check levels on your own chart.", "Крипто-пар за обігом": "Crypto pairs by volume", "Глибина пошуку sweep, свічок": "Sweep lookback, candles", "Свій список (через кому, порожньо = топ за обігом)": "Custom list (comma-separated, empty = top by volume)", "Фільтри": "Filters", "Напрямок": "Direction", "LONG і SHORT": "LONG and SHORT", "Лише LONG": "LONG only", "Лише SHORT": "SHORT only", "Сортування": "Sort by", "За балом": "Score", "За к-стю правил": "Rules confirmed", "За RR": "RR", "Найближчі до входу": "Closest to entry", "Мін. бал": "Min score", "Мін. правил ✓ (з 14)": "Min rules ✓ (of 14)", "Мін. RR": "Min RR", "Крипта проти BTC": "Crypto against BTC", "Показувати з попередженням": "Show with warning", "Ховати": "Hide", "Не перевіряти": "Don't check", "Пропущені сетапи (ціль відпрацювала, зону тестували, RR < 2)": "Skipped setups (target hit, zone tested, RR < 2)", "Не показувати": "Hide", "Показувати на радарі": "Show on radar", "Ризик": "Risk", "Депозит, USDT": "Balance, USDT", "Ризик на угоду, %": "Risk per trade, %", "Автооновлення і сповіщення": "Auto-refresh and alerts", "Автооновлення, хв (0 = вимк.)": "Auto-refresh, min (0 = off)", "Автоскан лише в kill zone": "Auto-scan only in kill zone", "Ні, завжди": "No, always", "Так": "Yes", "Звук про новий сетап": "Sound on new setup", "Увімкнено": "On", "Вимкнено": "Off", "Вібрація (телефон)": "Vibration (phone)", "Сповіщення браузера": "Browser notifications", "Сповіщення браузера працюють на комп'ютері. На Android Chrome вони можуть не з'являтись (браузер вимагає встановлений застосунок), тут я не перевіряв. Вібрація працює на Android, на iPhone ні.": "Browser notifications work on desktop. On Android Chrome they may not appear (needs an installed app); not verified. Vibration works on Android, not on iPhone.", "Вигляд": "Display", "Графік на картці": "Chart on card", "Показувати": "Show", "Сховати": "Hide", "Свічок на графіку": "Candles on chart", "Бал: A від 12, B від 9. Правила: 13 пунктів стратегії + BTC для крипти. Бектесту немає, пороги стартові. Календар новин не перевіряється: перед FOMC / NFP / CPI не входь. Автооновлення працює, поки сторінка відкрита.": "Score: A from 12, B from 9. Rules: 13 strategy points + BTC for crypto. Not backtested, thresholds are a starting point. News calendar is not checked: don't enter before FOMC / NFP / CPI. Auto-refresh works while the page is open.", "Скинути налаштування": "Reset settings", "Сетапи": "Setups", "Радар": "Radar", "Налаштування": "Settings"};
+const UI_EN={"Скрінер": "Screener", "Сканувати ринок": "Scan market", "Крипта, форекс, метали, індекси. Дані беруться з біржі напряму.": "Crypto, forex, metals, indices. Data comes straight from the exchange.", "Sweep уже був, структура ще не зламана. Входу немає, поки не буде BOS тілом.": "Sweep happened, structure not broken yet. No entry until a body BOS.", "Скан": "Scan", "Біржа": "Exchange", "Авто (Bybit, якщо ні, то Binance)": "Auto (Bybit, else Binance)", "Режим": "Mode", "Інтрадей: D1 / 4H / M15": "Intraday: D1 / 4H / M15", "Скальп: 4H / 1H / M5": "Scalp: 4H / 1H / M5", "Ринки": "Markets", "Крипта": "Crypto", "Форекс": "Forex", "Метали": "Metals", "Індекси": "Indices", "Акції": "Stocks", "Форекс: EURUSD, GBPUSD, USDJPY (Bybit), AUDUSD, USDCAD, USDCHF, EURCHF (Kraken). Метали: золото, срібло. Індекси: NAS100, GER40, SPX500, US30, UK100 (Gate). Джерело видно на картці. Це котирування крипто-бірж: ціна може на кілька пунктів відрізнятись від брокера, звіряй рівні на своєму графіку.": "Forex: EURUSD, GBPUSD, USDJPY (Bybit), AUDUSD, USDCAD, USDCHF, EURCHF (Kraken). Metals: gold, silver. Indices: NAS100, GER40, SPX500, US30, UK100 (Gate). Source is shown on the card. These are crypto-exchange quotes: price may differ from your broker by a few points, check levels on your own chart.", "Крипто-пар за обігом": "Crypto pairs by volume", "Глибина пошуку sweep, свічок": "Sweep lookback, candles", "Свій список (через кому, порожньо = топ за обігом)": "Custom list (comma-separated, empty = top by volume)", "Фільтри": "Filters", "Напрямок": "Direction", "LONG і SHORT": "LONG and SHORT", "Лише LONG": "LONG only", "Лише SHORT": "SHORT only", "Сортування": "Sort by", "За балом": "Score", "За к-стю правил": "Rules confirmed", "За RR": "RR", "Найближчі до входу": "Closest to entry", "Мін. бал": "Min score", "Мін. правил ✓ (з 14)": "Min rules ✓ (of 14)", "Мін. RR": "Min RR", "Крипта проти BTC": "Crypto against BTC", "Показувати з попередженням": "Show with warning", "Ховати": "Hide", "Не перевіряти": "Don't check", "Пропущені сетапи (ціль відпрацювала, зону тестували, RR < 2)": "Skipped setups (target hit, zone tested, RR < 2)", "Не показувати": "Hide", "Показувати на радарі": "Show on radar", "Ризик": "Risk", "Депозит, USDT": "Balance, USDT", "Ризик на угоду, %": "Risk per trade, %", "Автооновлення і сповіщення": "Auto-refresh and alerts", "Автооновлення, хв (0 = вимк.)": "Auto-refresh, min (0 = off)", "Автоскан лише в kill zone": "Auto-scan only in kill zone", "Ні, завжди": "No, always", "Так": "Yes", "Звук про новий сетап": "Sound on new setup", "Увімкнено": "On", "Вимкнено": "Off", "Вібрація (телефон)": "Vibration (phone)", "Сповіщення браузера": "Browser notifications", "Сповіщення браузера працюють на комп'ютері. На Android Chrome вони можуть не з'являтись (браузер вимагає встановлений застосунок), тут я не перевіряв. Вібрація працює на Android, на iPhone ні.": "Browser notifications work on desktop. On Android Chrome they may not appear (needs an installed app); not verified. Vibration works on Android, not on iPhone.", "Вигляд": "Display", "Графік на картці": "Chart on card", "Показувати": "Show", "Сховати": "Hide", "Свічок на графіку": "Candles on chart", "Бал: A від 12, B від 9. Правила: 13 пунктів стратегії + BTC для крипти. Бектесту немає, пороги стартові. Календар новин не перевіряється: перед FOMC / NFP / CPI не входь. Автооновлення працює, поки сторінка відкрита.": "Score: A from 12, B from 9. Rules: 13 strategy points + BTC for crypto. Not backtested, thresholds are a starting point. News calendar is not checked: don't enter before FOMC / NFP / CPI. Auto-refresh works while the page is open.", "Скинути налаштування": "Reset settings", "Сетапи": "Setups", "Радар": "Radar", "Налаштування": "Settings","Статистика":"Stats","Оновити результати":"Update results","Експорт":"Export","Імпорт":"Import","Очистити":"Clear","Кожен сетап з вкладки «Сетапи» записується сюди. Результат рахується по свічках: налився ліміт → що першим, SL чи TP. Без часткової фіксації на FTA і без комісій; якщо SL і TP в одній свічці, рахується стоп.":"Every setup from the Setups tab is logged here. Results are computed from candles: limit filled → which came first, SL or TP. No partial take at FTA, no fees; if SL and TP are in the same candle it counts as a stop."};
 let LANG="uk";try{LANG=(JSON.parse(localStorage.getItem("smc-cfg")||"{}").lang)||"uk";}catch(e){}
 const L=(u,e)=>LANG==="en"?e:u,Lg=L;
 const MODES={intraday:["1d","4h","15m"],scalp:["4h","1h","5m"]};
@@ -485,7 +506,8 @@ if(LANG==="en")document.title="SMC Screener";
 $("resetBtn").addEventListener("click",()=>{const m=Object.assign({},MK);cfg=Object.assign({},DEF,{markets:m});save();location.reload();});
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("act",x===b));
-  ["setups","radar","settings"].forEach(v=>$("v-"+v).classList.toggle("act",v===b.dataset.v));}));
+  ["setups","radar","stats","settings"].forEach(v=>$("v-"+v).classList.toggle("act",v===b.dataset.v));
+  if(b.dataset.v==="stats"){renderStats();if(!busy)updJournal();}}));
 function kyiv(){let p;
   for(const tz of ["Europe/Kyiv","Europe/Kiev"]){try{
     p=new Intl.DateTimeFormat("en-GB",{timeZone:tz,weekday:"short",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date());break;}catch(e){}}
@@ -651,10 +673,110 @@ async function scan(){
     last={sigs};const acts=render();
     const fresh=acts.filter(s=>!seen.has(s.id));fresh.forEach(s=>seen.add(s.id));
     if(fresh.length)notifyNew(fresh);
+    jAdd(acts,ex,tfs,now);await updJournal();
     const t=kyiv();
     status(`${ex.name} · ${String(t.hour).padStart(2,"0")}:${String(t.min).padStart(2,"0")} · ${L("перевірено","checked")} ${syms.length}, ${L("без тренду","no trend")} ${flat}`+(closed?`, ${L("ринок закритий","market closed")} ${closed}`:"")+(errs?`, ${L("помилок","errors")} ${errs}`:"")+(fresh.length?` · ${L("нових сетапів","new setups")}: ${fresh.length}`:""));
   }catch(e){status(L("Помилка: ","Error: ")+e.message,true);}
   busy=false;$("scanBtn").disabled=false;setTimeout(()=>{$("prog").style.width="0";},600);}
+// ---------------------------------------------------------- журнал / статистика
+const TFMS={"5m":3e5,"15m":9e5,"1h":36e5,"4h":144e5,"1d":864e5},EXP_BARS=48;
+let J=[];try{J=JSON.parse(localStorage.getItem("smc-journal")||"[]");}catch(e){J=[];}
+const jSave=()=>{try{localStorage.setItem("smc-journal",JSON.stringify(J));}catch(e){}};
+function jAdd(acts,ex,tfs,now){const have=new Set(J.map(x=>x.id));let n=0;
+  const exKey=Object.keys(EX).find(k=>EX[k]===ex);
+  for(const s of acts){if(have.has(s.id))continue;n++;
+    J.push({id:s.id,symbol:s.symbol,dir:s.dir,group:s.group,src:s.src,ex:exKey,tf:tfs[2],t0:Date.now(),dec:s.dec,
+      entry:s.entry,sl:s.sl,tp:s.tp,rr:+s.rr.toFixed(2),nOk:s.nOk,nAll:s.nAll,tier:s.tier,score:s.score,
+      kz:[9,10,11,14,15,16].includes(now.hour),wd:now.wd,st:"wait"});}
+  if(n)jSave();}
+// прогін сетапу по свічках після сигналу
+function sim(j,cs){const L1=j.dir==="LONG",tfm=TFMS[j.tf];
+  const bars=cs.filter(c=>c[0]+tfm>j.t0);if(!bars.length)return;
+  let filled=j.st==="open",k=0;
+  for(const c of bars){const hi=c[2],lo=c[3];
+    const hitE=L1?lo<=j.entry:hi>=j.entry,hitSL=L1?lo<=j.sl:hi>=j.sl,hitTP=L1?hi>=j.tp:lo<=j.tp;
+    if(!filled){k++;
+      if(hitE){filled=true;j.st="open";j.tf1=c[0];if(hitSL){j.st="loss";j.r=-1;j.t1=c[0];return;}continue;}
+      if(hitTP){j.st="nofill";j.t1=c[0];return;}
+      if(k>=EXP_BARS){j.st="expired";j.t1=c[0];return;}}
+    else{if(j.tf1&&c[0]<=j.tf1)continue;
+      if(hitSL){j.st="loss";j.r=-1;j.t1=c[0];return;}
+      if(hitTP){j.st="win";j.r=j.rr;j.t1=c[0];return;}}}
+  if(bars[0][0]>j.t0+tfm&&j.st==="wait"&&Date.now()-j.t0>EXP_BARS*tfm*3){j.st="nodata";}}
+let jBusy=false;
+async function updJournal(){
+  const todo=J.filter(j=>j.st==="wait"||j.st==="open");if(jBusy||!todo.length){renderStats();return;}
+  jBusy=true;
+  try{await pool(todo,3,async j=>{
+    try{const ex=EX[j.ex]||EX.bybit,tfm=TFMS[j.tf];
+      const need=Math.min(1000,Math.max(20,Math.ceil((Date.now()-j.t0)/tfm)+3));
+      const cs=clean(await klAny(ex,j.symbol,j.tf,need));
+      if(cs.length&&cs[0][0]>j.t0+tfm&&need>=1000){j.st="nodata";return;}
+      sim(j,cs.slice(0,-1).concat(cs.length?[cs[cs.length-1]]:[]));}catch(e){}});
+    jSave();}finally{jBusy=false;}
+  renderStats();}
+const JST=()=>LANG==="en"?{wait:"Waiting entry",open:"In position",win:"Take profit",loss:"Stop loss",nofill:"Left without entry",expired:"Limit not filled",nodata:"No data"}
+  :{wait:"Чекає вхід",open:"В позиції",win:"Тейк",loss:"Стоп",nofill:"Пішла без входу",expired:"Ліміт не налився",nodata:"Немає даних"};
+function agg(rows){const c=rows.filter(j=>j.st==="win"||j.st==="loss"),w=c.filter(j=>j.st==="win");
+  const sum=c.reduce((t,j)=>t+j.r,0),gp=w.reduce((t,j)=>t+j.r,0),gl=c.length-w.length;
+  return {n:c.length,w:w.length,wr:c.length?w.length/c.length:0,sum,avg:c.length?sum/c.length:0,pf:gl?gp/gl:(gp?Infinity:0)};}
+function table(title,groups){
+  const rows=groups.filter(g=>g[1].length).map(([name,rs])=>{const a=agg(rs);
+    return `<tr><td>${esc(name)}</td><td>${a.n}</td><td>${a.n?Math.round(a.wr*100)+"%":"–"}<span class="wr"><i style="width:${a.wr*100}%"></i></span></td><td class="${a.sum>0?"pos":a.sum<0?"neg":""}">${a.n?(a.sum>0?"+":"")+a.sum.toFixed(1):"–"}</td><td>${a.n?a.avg.toFixed(2):"–"}</td></tr>`;}).join("");
+  return rows?`<div class="subh">${title}</div><table class="tbl"><tr><th></th><th>${L("Угод","Trades")}</th><th>${L("Вінрейт","Winrate")}</th><th>R</th><th>${L("Сер. R","Avg R")}</th></tr>${rows}</table>`:"";}
+function equity(c){if(c.length<2)return "";
+  const W=440,H=120,pd=8;let acc=0;const pts=[0,...c.map(j=>acc+=j.r)];
+  const mn=Math.min(0,...pts),mx=Math.max(0,...pts),rg=mx-mn||1;
+  const x=i=>pd+i/(pts.length-1)*(W-2*pd),y=v=>pd+(mx-v)/rg*(H-2*pd);
+  const line=pts.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const col=acc>=0?"var(--long)":"var(--short)";
+  return `<div class="subh">${L("Крива капіталу, R","Equity curve, R")}</div><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="equity">
+  <line x1="0" x2="${W}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}" stroke="var(--mute)" stroke-dasharray="3 3" opacity=".6"/>
+  <polygon points="${x(0)},${y(0)} ${line} ${x(pts.length-1)},${y(0)}" fill="${col}" opacity=".12"/>
+  <polyline points="${line}" fill="none" stroke="${col}" stroke-width="2"/>
+  <text x="${W-6}" y="${Math.min(H-4,Math.max(12,y(acc)-5)).toFixed(1)}" text-anchor="end" font-size="11" font-family="ui-monospace,Consolas,monospace" fill="${col}">${acc>0?"+":""}${acc.toFixed(1)}R</text></svg>`;}
+function renderStats(){
+  const el=$("stats-body");if(!el)return;
+  const st=JST(),closed=J.filter(j=>j.st==="win"||j.st==="loss").sort((a,b)=>a.t1-b.t1),a=agg(J);
+  const act=J.filter(j=>j.st==="wait"||j.st==="open").length;
+  $("n-stats").textContent=act||"";
+  if(!J.length){el.innerHTML=`<div class="empty">${L("Журнал порожній. Щойно скрінер покаже сетап, він з'явиться тут.","Journal is empty. Setups will appear here once the screener shows them.")}</div>`;return;}
+  const bin=j=>{const p=j.nOk/j.nAll;return p>=.85?"≥85%":p>=.7?"70–84%":p>=.55?"55–69%":"<55%";};
+  const by=(f,keys)=>keys.map(k=>[k,J.filter(j=>f(j)===k)]);
+  const wdN=LANG==="en"?["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]:["Пн","Вт","Ср","Чт","Пт","Сб","Нд"];
+  const tm=t=>{const d=new Date(t);return `${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;};
+  el.innerHTML=`<div class="stats">
+    <div class="tile"><small>${L("Закрито","Closed")}</small><b>${a.n}</b></div>
+    <div class="tile"><small>${L("Вінрейт","Winrate")}</small><b>${a.n?Math.round(a.wr*100):"–"}<i>${a.n?"%":""}</i></b></div>
+    <div class="tile"><small>${L("Сума R","Total R")}</small><b style="color:${a.sum>0?"var(--long)":a.sum<0?"var(--short)":"inherit"}">${a.n?(a.sum>0?"+":"")+a.sum.toFixed(1):"–"}</b></div>
+    <div class="tile"><small>PF</small><b>${a.n?(a.pf===Infinity?"∞":a.pf.toFixed(2)):"–"}</b></div></div>
+  <div class="stats" style="margin-top:6px">
+    <div class="tile"><small>${L("Чекають","Waiting")}</small><b>${J.filter(j=>j.st==="wait").length}</b></div>
+    <div class="tile"><small>${L("В позиції","Open")}</small><b>${J.filter(j=>j.st==="open").length}</b></div>
+    <div class="tile"><small>${L("Без входу","No fill")}</small><b>${J.filter(j=>j.st==="nofill"||j.st==="expired").length}</b></div>
+    <div class="tile"><small>${L("Сер. R","Avg R")}</small><b>${a.n?a.avg.toFixed(2):"–"}</b></div></div>
+  ${equity(closed)}
+  ${table(L("За підтвердженими правилами","By confirmed rules"),by(bin,["≥85%","70–84%","55–69%","<55%"]))}
+  ${table(L("За класом","By grade"),by(j=>j.tier,["A","B","C"]))}
+  ${table(L("За напрямком","By direction"),by(j=>j.dir,["LONG","SHORT"]))}
+  ${table(L("За ринком","By market"),Object.keys(GNAME).map(k=>[GNAME[k],J.filter(j=>j.group===k)]))}
+  ${table("Kill zone",[[L("В kill zone","In kill zone"),J.filter(j=>j.kz)],[L("Поза kill zone","Outside"),J.filter(j=>!j.kz)]])}
+  ${table(L("За днем тижня","By weekday"),wdN.map((n,i)=>[n,J.filter(j=>j.wd===i)]))}
+  <div class="subh">${L("Журнал","Journal")} (${J.length})</div>
+  ${J.slice().reverse().slice(0,60).map(j=>`<div class="jr ${j.st}"><div><b>${esc(nice(j.symbol))} ${j.dir}</b> <small>${tm(j.t0)} · ${j.nOk}/${j.nAll} ${L("правил","rules")} · ${j.tier} · ${j.tf.toUpperCase()}</small><small>${L("вхід","entry")} ${PX(j.entry,j.dec)} · SL ${PX(j.sl,j.dec)} · TP ${PX(j.tp,j.dec)}</small></div>
+    <div class="res"><b style="color:${j.st==="win"?"var(--long)":j.st==="loss"?"var(--short)":"inherit"}">${j.r!=null?(j.r>0?"+":"")+j.r.toFixed(1)+"R":""}</b><small>${st[j.st]}</small></div></div>`).join("")}`;}
+$("j-upd").addEventListener("click",()=>{toast(L("Оновлюю…","Updating…"));updJournal();});
+$("j-exp").addEventListener("click",()=>{const b=new Blob([JSON.stringify(J,null,1)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="smc-journal.json";document.body.appendChild(a);a.click();a.remove();});
+$("j-imp").addEventListener("click",()=>$("j-file").click());
+$("j-file").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;
+  try{const d=JSON.parse(await f.text());if(!Array.isArray(d))throw 0;const have=new Set(J.map(x=>x.id));let n=0;
+    d.forEach(x=>{if(x&&x.id&&!have.has(x.id)){J.push(x);n++;}});J.sort((a,b)=>a.t0-b.t0);jSave();renderStats();toast(L("Додано: ","Added: ")+n);}
+  catch(err){toast(L("Файл не схожий на журнал","Not a journal file"));}e.target.value="";});
+let clrArm=0;$("j-clr").addEventListener("click",()=>{
+  if(Date.now()-clrArm>3000){clrArm=Date.now();toast(L("Натисни ще раз, щоб видалити весь журнал","Tap again to delete the whole journal"));return;}
+  J=[];jSave();renderStats();clrArm=0;toast(L("Журнал очищено","Journal cleared"));});
+renderStats();
 const inKZ=()=>{const h=kyiv().hour;return (h>=9&&h<12)||(h>=14&&h<17);};
 function schedule(){if(timer)clearInterval(timer);timer=null;const m=+cfg.loop||0;
   if(m>0)timer=setInterval(()=>{if(cfg.kzonly==="1"&&!inKZ())return;scan();},Math.max(1,m)*60000);}
