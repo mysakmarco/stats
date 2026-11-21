@@ -69,6 +69,11 @@ label{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--mute
 input,select{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px 12px;font:15px var(--sans);width:100%}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .note{font-size:12.5px;color:var(--mute);line-height:1.5}
+.cp{cursor:pointer;transition:background .15s;user-select:none}
+.cp:hover,.cp:focus-visible{background:#2a3850}
+.cp small::after{content:" \29C9";opacity:.6}
+#toast{position:fixed;left:50%;bottom:76px;transform:translate(-50%,16px);background:var(--accent);color:#10151f;padding:10px 14px;border-radius:10px;font:600 14px var(--sans);opacity:0;pointer-events:none;transition:.2s;max-width:90%;text-align:center;z-index:9}
+#toast.show{opacity:1;transform:translate(-50%,0)}
 .mk{font-size:11px;color:var(--mute);border:1px solid var(--line);border-radius:6px;padding:1px 6px}
 .lbl{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--mute)}
 .mkts{display:flex;flex-wrap:wrap;gap:8px}
@@ -140,6 +145,7 @@ nav button em{font-style:normal;font:11px var(--mono);margin-left:4px;opacity:.8
     <button data-v="settings">Налаштування</button>
   </nav>
 </div>
+<div id="toast"></div>
 <script>
 /*CORE*/
 const MODES={intraday:["1d","4h","15m"],scalp:["4h","1h","5m"]};
@@ -279,7 +285,7 @@ function analyze(sym,ctx,htf,ltf,now,a){
   plan.push("Не вийшло: 1 збиткова = день завершено. Ліміт не налився: не стрибай на інші пари.");
   if(r.state==="ENTER")plan.unshift("Ціна вже в зоні: став ліміт на CE зараз (або маркет, якщо RR лишається від 2).");
   else plan.unshift(`Ціна ${fmt(r.price)} ще не в зоні (до входу ${(Math.abs(r.price-r.entry)/r.price*100).toFixed(2)}%): став ліміт і чекай.`);
-  return Object.assign(sig,{state:r.state,score,tier,entry:r.entry,sl:r.sl,tp:r.tp,rr,plan});}
+  return Object.assign(sig,{state:r.state,score,tier,entry:r.entry,sl:r.sl,tp:r.tp,rr,plan,zb:r.zoneBottom,zt:r.zoneTop});}
 /*END*/
 
 // ---------------------------------------------------------------- біржі
@@ -361,17 +367,26 @@ header();setInterval(header,20000);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const ST={ENTER:"Вхід зараз",WAIT:"Чекати лімітку"};
 function card(s){
+  const zoneTxt=s.zb!=null?`${fmt(Math.min(s.zb,s.zt))} - ${fmt(Math.max(s.zb,s.zt))}`:"-";
   const txt=`${nice(s.symbol)} ${s.dir}\nentry ${fmt(s.entry)} | SL ${fmt(s.sl)} | TP ${fmt(s.tp)} | RR ${s.rr.toFixed(1)}`;
   return `<article class="card ${s.dir}">
   <div class="row"><div class="row"><span class="sym">${esc(nice(s.symbol))}</span><span class="dir">${s.dir}</span><span class="mk">${GNAME[s.group]||""} · ${esc(s.src||"")}</span></div><span class="pill ${s.state}">${ST[s.state]}</span></div>
-  <div class="grid"><div class="cell"><small>Вхід</small><b>${fmt(s.entry)}</b></div><div class="cell"><small>Стоп</small><b>${fmt(s.sl)}</b></div><div class="cell"><small>Тейк</small><b>${fmt(s.tp)}</b></div><div class="cell"><small>RR</small><b>${s.rr.toFixed(1)}</b></div></div>
-  <div class="row"><span class="score">бал ${s.score} · клас ${s.tier} · ціна ${fmt(s.price)}</span><button class="copy" data-t="${esc(txt)}">Копіювати рівні</button></div>
+  <div class="grid"><div class="cell cp" tabindex="0" data-v="${fmt(s.entry)}"><small>Вхід</small><b>${fmt(s.entry)}</b></div><div class="cell cp" tabindex="0" data-v="${fmt(s.sl)}"><small>Стоп</small><b>${fmt(s.sl)}</b></div><div class="cell cp" tabindex="0" data-v="${fmt(s.tp)}"><small>Тейк</small><b>${fmt(s.tp)}</b></div><div class="cell cp" tabindex="0" data-v="${zoneTxt}"><small>Зона</small><b>${zoneTxt}</b></div></div>
+  <div class="row"><span class="score">RR ${s.rr.toFixed(1)} · бал ${s.score} · клас ${s.tier} · ціна ${fmt(s.price)}</span><button class="copy" data-t="${esc(txt)}">Копіювати рівні</button></div>
   <details><summary>Чому і що робити</summary>
     <h3>Чому</h3><ul>${s.reasons.map(x=>`<li>${esc(x)}</li>`).join("")}${s.warns.map(x=>`<li class="w">${esc(x)}</li>`).join("")}</ul>
     <h3>План</h3><ul>${s.plan.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
   </details></article>`;}
-$("setups").addEventListener("click",e=>{const b=e.target.closest(".copy");if(!b)return;
-  try{navigator.clipboard.writeText(b.dataset.t).then(()=>{b.textContent="Скопійовано";},()=>{b.textContent="Не вдалось";});}catch(x){b.textContent="Не вдалось";}});
+let toastT;
+function toast(t){const el=$("toast");el.textContent=t;el.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove("show"),1600);}
+function copyText(t){
+  const ok=()=>toast("Скопійовано: "+t),fb=()=>{const ta=document.createElement("textarea");ta.value=t;ta.setAttribute("readonly","");
+    ta.style.cssText="position:fixed;opacity:0;top:0;left:0";document.body.appendChild(ta);ta.select();let good=false;
+    try{good=document.execCommand("copy");}catch(e){}ta.remove();good?ok():toast("Не вдалось, скопіюй вручну: "+t);};
+  if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(t).then(ok,fb);else fb();}
+document.addEventListener("click",e=>{const c=e.target.closest(".cp,.copy");if(!c)return;
+  copyText(c.classList.contains("copy")?c.dataset.t:c.dataset.v);});
+document.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.classList&&e.target.classList.contains("cp")){e.preventDefault();copyText(e.target.dataset.v);}});
 function beep(){try{const A=new (window.AudioContext||window.webkitAudioContext)();const o=A.createOscillator(),g=A.createGain();
   o.frequency.value=1100;o.connect(g);g.connect(A.destination);g.gain.setValueAtTime(.15,A.currentTime);o.start();o.stop(A.currentTime+.35);}catch(e){}}
 function status(t,err){$("status").textContent=t;$("status").classList.toggle("err",!!err);}
