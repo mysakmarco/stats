@@ -83,6 +83,38 @@ nav{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--
 nav button{background:none;border:0;color:var(--mute);padding:12px 4px 14px;font:600 13px var(--sans);cursor:pointer;border-top:2px solid transparent}
 nav button.act{color:var(--accent);border-top-color:var(--accent)}
 nav button em{font-style:normal;font:11px var(--mono);margin-left:4px;opacity:.8}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 8px 7px;min-width:0}
+.tile small{display:block;font-size:10px;color:var(--mute);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile b{font:700 17px var(--mono);font-variant-numeric:tabular-nums}
+.tile b i{font-style:normal;font-size:12px;color:var(--mute);font-weight:500}
+.ls{display:flex;height:5px;border-radius:3px;overflow:hidden;margin-top:5px;background:var(--panel2)}
+.ls span:first-child{background:var(--long)}.ls span:last-child{background:var(--short)}
+.rules{display:flex;align-items:center;gap:10px}
+.rnum{font:700 20px var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1}
+.rnum i{font-style:normal;font-size:13px;color:var(--mute);font-weight:500}
+.rnum small{display:block;font:10px var(--sans);color:var(--mute);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+.rnum.hi{color:var(--long)}.rnum.md{color:var(--accent)}.rnum.lo{color:var(--short)}
+.segs{flex:1;display:flex;gap:3px}
+.segs span{flex:1;height:8px;border-radius:2px;background:var(--panel2);border:1px solid var(--line)}
+.segs span.y{background:var(--long);border-color:var(--long)}
+.segs span.n{background:rgba(240,97,109,.55);border-color:transparent}
+.tier{font:800 14px var(--mono);width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--panel2);color:var(--mute);flex:none}
+.tier.A{background:var(--long);color:#10151f}.tier.B{background:var(--accent);color:#10151f}
+.chart{display:block;width:100%;height:auto;background:#141b28;border-radius:8px;border:1px solid var(--line)}
+.ck{list-style:none;padding-left:0}
+.ck li{display:flex;gap:8px;align-items:baseline}
+.ck li::before{content:"✓";font-weight:700;color:var(--long);width:14px;flex:none}
+.ck li.n::before{content:"✗";color:var(--short)}
+.ck li.p{color:var(--mute)}.ck li.p::before{content:"…";color:var(--mute)}
+.ladder{position:relative;height:22px;margin:2px 0}
+.ladder .tr{position:absolute;top:9px;left:0;right:0;height:4px;border-radius:2px;background:linear-gradient(90deg,var(--short) 0 var(--e),var(--long) var(--e) 100%);opacity:.55}
+.ladder b{position:absolute;top:3px;width:2px;height:16px;background:var(--text);transform:translateX(-1px)}
+.ladder em{position:absolute;top:0;font:10px var(--mono);font-style:normal;color:var(--mute)}
+.sec{margin:10px 0 -2px;font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:.7px;font-weight:700}
+.btn2{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px 12px;font:600 14px var(--sans);cursor:pointer}
+.subh{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.6px;margin:6px 0 -4px}
+.card.SKIP{opacity:.7}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
 </style>
 </head>
@@ -100,6 +132,7 @@ nav button em{font-style:normal;font:11px var(--mono);margin-left:4px;opacity:.8
       <button class="scan" id="scanBtn">Сканувати ринок</button>
       <div class="bar"><i id="prog"></i></div>
       <div class="status" id="status">Крипта, форекс, метали, індекси. Дані беруться з біржі напряму.</div>
+      <div class="stats" id="stats"></div>
       <div id="setups" class="view act"></div>
     </section>
     <section class="view" id="v-radar">
@@ -107,6 +140,7 @@ nav button em{font-style:normal;font:11px var(--mono);margin-left:4px;opacity:.8
       <div id="radar" class="view act"></div>
     </section>
     <section class="view" id="v-settings">
+      <div class="sec">Скан</div>
       <label>Біржа
         <select id="s-exchange"><option value="auto">Авто (Bybit, якщо ні, то Binance)</option><option value="bybit">Bybit</option><option value="binance">Binance Futures</option></select>
       </label>
@@ -121,22 +155,70 @@ nav button em{font-style:normal;font:11px var(--mono);margin-left:4px;opacity:.8
       <p class="note">Форекс: EURUSD, GBPUSD, USDJPY (Bybit), AUDUSD, USDCAD, USDCHF, EURCHF (Kraken). Метали: золото, срібло. Індекси: NAS100, GER40, SPX500, US30, UK100 (Gate). Джерело видно на картці. Це котирування крипто-бірж: ціна може на кілька пунктів відрізнятись від брокера, звіряй рівні на своєму графіку.</p>
       <div class="two">
         <label>Крипто-пар за обігом<input id="s-top" type="number" min="5" max="150" inputmode="numeric"></label>
-        <label>Мін. бал<input id="s-min" type="number" min="0" max="20" inputmode="numeric"></label>
+        <label>Глибина пошуку sweep, свічок<input id="s-lookback" type="number" min="20" max="250" inputmode="numeric"></label>
       </div>
       <label>Свій список (через кому, порожньо = топ за обігом)
         <input id="s-symbols" type="text" placeholder="BTCUSDT,ETHUSDT" autocapitalize="characters">
       </label>
+
+      <div class="sec">Фільтри</div>
+      <div class="two">
+        <label>Напрямок
+          <select id="s-dir"><option value="all">LONG і SHORT</option><option value="LONG">Лише LONG</option><option value="SHORT">Лише SHORT</option></select>
+        </label>
+        <label>Сортування
+          <select id="s-sort"><option value="score">За балом</option><option value="rules">За к-стю правил</option><option value="rr">За RR</option><option value="dist">Найближчі до входу</option></select>
+        </label>
+      </div>
+      <div class="two">
+        <label>Мін. бал<input id="s-min" type="number" min="0" max="20" inputmode="numeric"></label>
+        <label>Мін. правил ✓ (з 14)<input id="s-minrules" type="number" min="0" max="14" inputmode="numeric"></label>
+      </div>
+      <div class="two">
+        <label>Мін. RR<input id="s-minrr" type="number" min="1" max="10" step="0.5" inputmode="decimal"></label>
+        <label>Крипта проти BTC
+          <select id="s-btc"><option value="warn">Показувати з попередженням</option><option value="hide">Ховати</option><option value="off">Не перевіряти</option></select>
+        </label>
+      </div>
+      <label>Пропущені сетапи (ціль відпрацювала, зону тестували, RR &lt; 2)
+        <select id="s-skips"><option value="0">Не показувати</option><option value="1">Показувати на радарі</option></select>
+      </label>
+
+      <div class="sec">Ризик</div>
       <div class="two">
         <label>Депозит, USDT<input id="s-balance" type="number" min="0" inputmode="decimal"></label>
         <label>Ризик на угоду, %<input id="s-risk" type="number" min="0.1" max="5" step="0.1" inputmode="decimal"></label>
       </div>
+
+      <div class="sec">Автооновлення і сповіщення</div>
       <div class="two">
         <label>Автооновлення, хв (0 = вимк.)<input id="s-loop" type="number" min="0" max="60" inputmode="numeric"></label>
+        <label>Автоскан лише в kill zone
+          <select id="s-kzonly"><option value="0">Ні, завжди</option><option value="1">Так</option></select>
+        </label>
+      </div>
+      <div class="two">
         <label>Звук про новий сетап
           <select id="s-sound"><option value="1">Увімкнено</option><option value="0">Вимкнено</option></select>
         </label>
+        <label>Вібрація (телефон)
+          <select id="s-vibro"><option value="1">Увімкнено</option><option value="0">Вимкнено</option></select>
+        </label>
       </div>
-      <p class="note">Бал: A від 12, B від 9. Бектесту немає, пороги стартові. Календар новин не перевіряється: перед FOMC / NFP / CPI не входь. Автооновлення працює, поки сторінка відкрита.</p>
+      <label>Сповіщення браузера
+        <select id="s-notify"><option value="0">Вимкнено</option><option value="1">Увімкнено</option></select>
+      </label>
+      <p class="note">Сповіщення браузера працюють на комп'ютері. На Android Chrome вони можуть не з'являтись (браузер вимагає встановлений застосунок), тут я не перевіряв. Вібрація працює на Android, на iPhone ні.</p>
+
+      <div class="sec">Вигляд</div>
+      <div class="two">
+        <label>Графік на картці
+          <select id="s-chart"><option value="1">Показувати</option><option value="0">Сховати</option></select>
+        </label>
+        <label>Свічок на графіку<input id="s-bars" type="number" min="20" max="120" inputmode="numeric"></label>
+      </div>
+      <p class="note">Бал: A від 12, B від 9. Правила: 13 пунктів стратегії + BTC для крипти. Бектесту немає, пороги стартові. Календар новин не перевіряється: перед FOMC / NFP / CPI не входь. Автооновлення працює, поки сторінка відкрита.</p>
+      <button class="btn2" id="resetBtn" type="button">Скинути налаштування</button>
     </section>
   </main>
   <nav>
@@ -236,6 +318,11 @@ function snapR(r,d,t,dec){
   const far=d===1?"dn":"up";
   r.entry=sn(r.entry,"nr");r.sl=sn(r.sl,far);r.tp=sn(r.tp,far);r.tp2=sn(r.tp2,far);r.fta=sn(r.fta,far);
   r.zoneBottom=sn(r.zoneBottom,"nr");r.zoneTop=sn(r.zoneTop,"nr");r.risk=Math.abs(r.entry-r.sl);}
+// чек-лист правил стратегії (System Trade: угода системна, коли все ✓)
+const RULE_ORDER=["trend","ctx","sweep","vol","bos","poi","conf","pd","ote","rr","fta","kz","day"];
+const RULE_DEF={trend:"Тренд на робочому ТФ",ctx:"Старший ТФ погоджується",sweep:"Sweep ліквідності",vol:"Об'єм на sweep ≥ 1.5x",
+  bos:"BOS тілом",poi:"POI: FVG або OB",conf:"OB + FVG confluence",pd:"Вхід у Discount / Premium",ote:"OTE-відкат 50–85%",
+  rr:"RR ≥ 2 після округлення",fta:"Немає FTA ближче 1R",kz:"Kill zone",day:"Добрий день (Вт–Чт)",btc:"BTC в ту ж сторону"};
 // now = {hour, wd}  wd: 0=понеділок ... 6=неділя (час Києва)
 function analyze(sym,ctx,htf,ltf,now,a){
   const P=v=>PX(v,a.dec);
@@ -250,31 +337,49 @@ function analyze(sym,ctx,htf,ltf,now,a){
   const T=a.tfs.map(x=>x.toUpperCase());
   const kz=[9,10,11,14,15,16].includes(now.hour),wd=now.wd;
   const reasons=[],warns=[];let score=2;
+  const ck={},CK=(k,ok,t)=>{ck[k]={ok:!!ok,t};};
+  const pack=()=>RULE_ORDER.map(k=>ck[k]?Object.assign({k},ck[k]):{k,ok:null,t:RULE_DEF[k]});
+  CK("trend",true,`${T[1]} тренд ${nm} (${why4})`);
+  CK("ctx",bctx===b4,`${T[0]} погоджується з ${T[1]}`+(bctx===b4?"":` (зараз: ${whyctx})`));
+  CK("sweep",true,`Sweep ліквідності на ${T[2]} + повернення тілом`);
+  CK("vol",r.volx>=1.5,`Об'єм на sweep ≥ 1.5x (x${(r.volx||0).toFixed(1)})`);
+  CK("kz",kz,"Kill zone (Лондон 09–12 / NY 14–17)");
+  CK("day",wd>=1&&wd<=3,"Добрий день (Вт–Чт)");
   reasons.push(`${T[1]} тренд ${nm} (${why4}), працюємо лише ${side}`);
   if(bctx===b4){score++;reasons.push(`${T[0]} теж ${nm} (${whyctx}), старший ТФ погоджується`);}
   else if(bctx!=="flat"){score--;warns.push(`${T[0]} проти ідеї (${whyctx}): вхід агресивніший, ризик 0.5%`);}
   score+=2;
   reasons.push(`${T[2]}: знято ліквідність за ${d===1?"low":"high"} ${P(r.level)} (екстремум ${P(r.sweepLow)}) і ціна повернулась тілом назад`);
   if(r.volx>=1.5){score++;reasons.push(`об'єм на sweep x${r.volx.toFixed(1)} від середнього: реальне зняття стопів`);}
-  const sig={symbol:sym,dir:side,price:live[4],reasons,warns,dec:a.dec,id:`${sym}|${side}|${r.swT}`};
+  const sig={symbol:sym,dir:side,price:live[4],reasons,warns,dec:a.dec,id:`${sym}|${side}|${r.swT}`,
+    candles:ltf.slice(-(a.bars||48)),lvl:r.level,ref:r.refHi,swp:r.sweepLow};
+  const fin=o=>Object.assign(sig,o,{checks:pack()});
   const word=d===1?"вище":"нижче";
-  if(r.stage==="sweep")return Object.assign(sig,{state:"WATCH",score,tier:"-",
+  if(r.stage==="sweep")return fin({state:"WATCH",score,tier:"-",
     plan:[`Чекай BOS: ${T[2]} має закритись тілом ${word} ${P(r.refHi)}.`,"Поки структура не зламана, входу немає."]});
-  if(r.stage==="bos")return Object.assign(sig,{state:"SKIP",score,tier:"-",plan:[`Пропуск: ${r.reason}.`]});
+  CK("bos",true,`BOS: тіло ${word} ${P(r.refHi)}`);
+  if(r.stage==="bos")return fin({state:"SKIP",score,tier:"-",plan:[`Пропуск: ${r.reason}.`]});
   if(["DONE","LATE","MISSED"].includes(r.state)){
     const lb={DONE:"ціль уже відпрацювала",LATE:"зону вже тестували, угода могла відкритись",MISSED:"ціна пішла без входу (понад 50% шляху до TP)"}[r.state];
-    return Object.assign(sig,{state:"SKIP",score,tier:"-",plan:[`Пропуск: ${lb}.`]});}
+    return fin({state:"SKIP",score,tier:"-",plan:[`Пропуск: ${lb}.`]});}
   score+=2;reasons.push(`BOS: закриття тілом ${word} ${P(r.refHi)}, структура змінилась`);
   score++;
   reasons.push(r.hasFvg?`POI: FVG ${P(r.zoneBottom)} - ${P(r.zoneTop)}, вхід на CE (50%)`:`POI: Order Block ${P(r.zoneBottom)} - ${P(r.zoneTop)}`);
   if(r.obOverlap){score++;reasons.push("OB перетинається з FVG (confluence)");}
+  CK("poi",true,r.hasFvg?`POI: FVG, вхід на CE`:`POI: Order Block`);
+  CK("conf",r.obOverlap,"OB + FVG confluence");
   const rng=dealingRange(h4c);
   if(rng){const pos=(r.entry-rng[0])/(rng[1]-rng[0]);const ok=d===1?pos<0.5:pos>0.5;const zone=pos<0.5?"Discount":"Premium";
     const pct=Math.round(Math.max(0,Math.min(1,pos))*100);
+    CK("pd",ok,`Вхід у ${d===1?"Discount":"Premium"} (зараз ${zone} ${pct}%)`);
     if(ok){score+=2;reasons.push(`вхід у ${zone} ${T[1]}-діапазону (${pct}%), правильна зона для ${side}`);}
     else{score--;warns.push(`вхід у ${zone} (${pct}%): для ${side} краще ${d===1?"Discount":"Premium"}`);}}
-  if(r.retr>=0.5&&r.retr<=0.85){score++;reasons.push(`відкат імпульсу ${Math.round(r.retr*100)}% (зона OTE 62-79%)`);}
+  else CK("pd",false,"Discount / Premium: діапазон не визначено");
+  const oteOk=r.retr>=0.5&&r.retr<=0.85;
+  if(oteOk){score++;reasons.push(`відкат імпульсу ${Math.round(r.retr*100)}% (зона OTE 62-79%)`);}
+  CK("ote",oteOk,`OTE-відкат 50–85% (зараз ${Math.round((r.retr||0)*100)}%)`);
   const rr=Math.abs(r.tp-r.entry)/r.risk;if(rr>=3)score++;
+  CK("rr",rr>=2,`RR ≥ 2 після округлення (${rr.toFixed(1)})`);
   if(a.tick&&rr<2)warns.push("після округлення до тіку біржі RR < 2: краще пропустити");
   if(kz){score++;reasons.push("зараз kill zone (Лондон 09-12 / NY 14-17 за Києвом)");}
   else warns.push("поза kill zone: ліквідність гірша, краще лімітка і чекати");
@@ -284,7 +389,9 @@ function analyze(sym,ctx,htf,ltf,now,a){
   else warns.push("вихідні: низька ліквідність");
   warns.push("календар новин не перевіряється: перед FOMC/NFP/CPI не входь");
   const ftaOn=r.fta!=null&&r.fta!==r.tp;
-  if(ftaOn&&Math.abs(r.fta-r.entry)/r.risk<1)warns.push(`FTA ${P(r.fta)} близько до входу: дочекайся реакції там`);
+  const ftaNear=ftaOn&&Math.abs(r.fta-r.entry)/r.risk<1;
+  if(ftaNear)warns.push(`FTA ${P(r.fta)} близько до входу: дочекайся реакції там`);
+  CK("fta",!ftaNear,ftaNear?`FTA ${P(r.fta)} ближче 1R`:"Немає FTA ближче 1R");
   const tier=score>=12?"A":score>=9?"B":"C";
   const plan=[`Лімітка ${side} @ ${P(r.entry)} ${r.hasFvg?"(CE FVG)":"(середина OB)"}`,
     `SL ${P(r.sl)} за sweep-екстремумом; скасувати, якщо ${T[2]} закриється тілом за SL`,
@@ -295,7 +402,7 @@ function analyze(sym,ctx,htf,ltf,now,a){
   plan.push("Не вийшло: 1 збиткова = день завершено. Ліміт не налився: не стрибай на інші пари.");
   if(r.state==="ENTER")plan.unshift("Ціна вже в зоні: став ліміт на CE зараз (або маркет, якщо RR лишається від 2).");
   else plan.unshift(`Ціна ${P(r.price)} ще не в зоні (до входу ${(Math.abs(r.price-r.entry)/r.price*100).toFixed(2)}%): став ліміт і чекай.`);
-  return Object.assign(sig,{state:r.state,score,tier,entry:r.entry,sl:r.sl,tp:r.tp,rr,plan,zb:r.zoneBottom,zt:r.zoneTop});}
+  return fin({state:r.state,score,tier,entry:r.entry,sl:r.sl,tp:r.tp,rr,plan,zb:r.zoneBottom,zt:r.zoneTop});}
 /*END*/
 
 // ---------------------------------------------------------------- біржі
@@ -345,7 +452,8 @@ const EX={
 
 // ------------------------------------------------------------- інтерфейс
 const $=id=>document.getElementById(id);
-const DEF={exchange:"auto",mode:"intraday",top:30,min:9,symbols:"",balance:1000,risk:1,loop:5,sound:"1"};
+const DEF={exchange:"auto",mode:"intraday",top:30,lookback:80,symbols:"",dir:"all",sort:"score",min:9,minrules:0,minrr:2,btc:"warn",skips:"0",
+  balance:1000,risk:1,loop:5,kzonly:"0",sound:"1",vibro:"1",notify:"0",chart:"1",bars:48};
 const MK={crypto:1,fx:1,metals:1,idx:1,stocks:0};
 let cfg=Object.assign({},DEF);
 try{Object.assign(cfg,JSON.parse(localStorage.getItem("smc-cfg")||"{}"));}catch(e){}
@@ -357,7 +465,11 @@ document.querySelectorAll("#s-markets button").forEach(b=>{const g=b.dataset.g;
 const seen=new Set();let timer=null,busy=false,lastBtc="";
 for(const k of Object.keys(DEF)){const el=$("s-"+k);el.value=cfg[k];
   el.addEventListener("change",()=>{cfg[k]=el.type==="number"?(+el.value||0):el.value;
-    save();if(k==="loop")schedule();});}
+    save();if(k==="loop")schedule();
+    if(k==="notify"&&el.value==="1"&&"Notification" in window&&Notification.permission!=="granted")
+      Notification.requestPermission().then(p=>{if(p!=="granted")toast("Браузер не дав дозвіл на сповіщення");});
+    if(["dir","sort","min","minrules","minrr","btc","skips","chart"].includes(k))render();});}
+$("resetBtn").addEventListener("click",()=>{const m=Object.assign({},MK);cfg=Object.assign({},DEF,{markets:m});save();location.reload();});
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("act",x===b));
   ["setups","radar","settings"].forEach(v=>$("v-"+v).classList.toggle("act",v===b.dataset.v));}));
@@ -375,18 +487,92 @@ function header(){const n=kyiv();
   $("chips").innerHTML=`<span class="chip ${kz?"on":""}">${kz||"поза kill zone"}</span><span class="chip">${day}</span>${lastBtc}`;}
 header();setInterval(header,20000);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const ST={ENTER:"Вхід зараз",WAIT:"Чекати лімітку"};
+const ST={ENTER:"Вхід зараз",WAIT:"Чекати лімітку",WATCH:"Чекати BOS",SKIP:"Пропуск"};
+// міні-графік: свічки молодшого ТФ + зона, вхід, стоп, тейк
+function chart(s){
+  const cs=s.candles;if(cfg.chart==="0"||!cs||cs.length<5)return "";
+  const W=440,H=150,pd=6,RW=58,F=v=>PX(v,s.dec);
+  const L=[];
+  if(s.entry!=null){L.push([s.tp,"TP","var(--long)",""],[s.entry,"Вхід","var(--accent)","4 3"],[s.sl,"SL","var(--short)",""]);}
+  else{if(s.ref!=null)L.push([s.ref,"BOS","var(--accent)","4 3"]);if(s.swp!=null)L.push([s.swp,"Sweep","var(--short)","2 3"]);}
+  let lo=Infinity,hi=-Infinity;cs.forEach(c=>{lo=Math.min(lo,c[3]);hi=Math.max(hi,c[2]);});
+  L.forEach(x=>{if(x[0]!=null&&isFinite(x[0])){lo=Math.min(lo,x[0]);hi=Math.max(hi,x[0]);}});
+  const m=(hi-lo)*.05||Math.abs(hi)*.001||1;lo-=m;hi+=m;
+  const y=v=>pd+(hi-v)/(hi-lo)*(H-2*pd),cw=(W-RW)/cs.length;
+  let g="";
+  if(s.zb!=null){const a=y(Math.max(s.zb,s.zt)),b=y(Math.min(s.zb,s.zt));
+    g+=`<rect x="0" y="${a.toFixed(1)}" width="${W-RW}" height="${Math.max(1.5,b-a).toFixed(1)}" fill="var(--accent)" opacity=".16"/>`;}
+  cs.forEach((c,i)=>{const x=i*cw+cw/2,up=c[4]>=c[1],col=up?"var(--long)":"var(--short)",last=i===cs.length-1;
+    const t=y(Math.max(c[1],c[4])),bh=Math.max(1,Math.abs(y(c[1])-y(c[4])));
+    g+=`<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${y(c[2]).toFixed(1)}" y2="${y(c[3]).toFixed(1)}" stroke="${col}" stroke-width="1" opacity="${last?1:.75}"/>`+
+       `<rect x="${(x-cw*.35).toFixed(1)}" y="${t.toFixed(1)}" width="${(cw*.7).toFixed(1)}" height="${bh.toFixed(1)}" fill="${col}" opacity="${last?1:.75}"/>`;});
+  const lab=L.filter(x=>x[0]!=null).map(x=>({v:x[0],t:x[1],c:x[2],d:x[3],y:y(x[0])}));
+  lab.push({v:s.price,t:"",c:"var(--text)",d:"1 2",y:y(s.price),now:1});
+  lab.forEach(l=>{g+=`<line x1="0" x2="${W-RW}" y1="${l.y.toFixed(1)}" y2="${l.y.toFixed(1)}" stroke="${l.c}" stroke-width="1" ${l.d?`stroke-dasharray="${l.d}"`:""} opacity="${l.now?.6:.9}"/>`;});
+  const ord=lab.slice().sort((a,b)=>a.y-b.y);for(let i=1;i<ord.length;i++)if(ord[i].y-ord[i-1].y<12)ord[i].y=ord[i-1].y+12;
+  ord.forEach(l=>{const ty=Math.min(H-3,Math.max(9,l.y+3.5));
+    g+=`<rect x="${W-RW+2}" y="${(ty-9).toFixed(1)}" width="${RW-3}" height="12" rx="3" fill="${l.now?"var(--text)":l.c}" opacity="${l.now?.9:.85}"/>`+
+       `<text x="${W-RW+5}" y="${ty.toFixed(1)}" font-size="9.5" font-family="ui-monospace,Consolas,monospace" fill="#10151f">${esc(F(l.v))}</text>`;});
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Графік ${esc(nice(s.symbol))}">${g}</svg>`;}
+// шкала SL - вхід - TP з поточною ціною
+function ladder(s){if(s.entry==null)return "";
+  const lo=Math.min(s.sl,s.tp),hi=Math.max(s.sl,s.tp),pos=v=>Math.max(0,Math.min(100,(v-lo)/(hi-lo)*100));
+  const e=pos(s.entry),p=pos(s.price),flip=s.dir==="SHORT";
+  const grad=flip?`linear-gradient(90deg,var(--long) 0 ${e}%,var(--short) ${e}% 100%)`:"";
+  return `<div class="ladder" title="SL · вхід · TP"><div class="tr" style="--e:${e}%;${grad?`background:${grad}`:""}"></div>
+  <em style="left:0">${flip?"TP":"SL"}</em><em style="right:0">${flip?"SL":"TP"}</em>
+  <b style="left:${e}%;background:var(--accent)"></b><b style="left:${p}%;height:10px;top:6px;width:6px;border-radius:3px;transform:translateX(-3px)"></b></div>`;}
+function meter(s){
+  const cls=s.nOk/s.nAll>=.8?"hi":s.nOk/s.nAll>=.6?"md":"lo";
+  return `<div class="rules"><div class="rnum ${cls}">${s.nOk}<i>/${s.nAll}</i><small>правил</small></div>
+  <div class="segs" aria-hidden="true">${s.checks.map(c=>`<span class="${c.ok===true?"y":c.ok===false?"n":""}" title="${esc(c.t)}"></span>`).join("")}</div>
+  ${s.tier&&s.tier!=="-"?`<span class="tier ${s.tier}" title="клас сетапу">${s.tier}</span>`:""}</div>`;}
+const ckList=s=>`<ul class="ck">${s.checks.map(c=>`<li class="${c.ok===true?"":c.ok===false?"n":"p"}">${esc(c.t)}${c.ok===null?" — ще не сформовано":""}</li>`).join("")}</ul>`;
+const head=s=>`<div class="row"><div class="row"><span class="sym">${esc(nice(s.symbol))}</span><span class="dir">${s.dir}</span><span class="mk">${GNAME[s.group]||""} · ${esc(s.src||"")}</span></div><span class="pill ${s.state}">${ST[s.state]}</span></div>`;
 function card(s){
   const F=v=>PX(v,s.dec);
   const txt=`${nice(s.symbol)} ${s.dir}\nentry ${F(s.entry)} | SL ${F(s.sl)} | TP ${F(s.tp)} | RR ${s.rr.toFixed(1)}`;
-  return `<article class="card ${s.dir}">
-  <div class="row"><div class="row"><span class="sym">${esc(nice(s.symbol))}</span><span class="dir">${s.dir}</span><span class="mk">${GNAME[s.group]||""} · ${esc(s.src||"")}</span></div><span class="pill ${s.state}">${ST[s.state]}</span></div>
-  <div class="grid"><div class="cell cp" tabindex="0" data-v="${F(s.entry)}"><small>Вхід</small><b>${F(s.entry)}</b></div><div class="cell cp" tabindex="0" data-v="${F(s.sl)}"><small>Стоп</small><b>${F(s.sl)}</b></div><div class="cell cp" tabindex="0" data-v="${F(s.tp)}"><small>Тейк</small><b>${F(s.tp)}</b></div><div class="cell cp" tabindex="0" data-v="${F(Math.min(s.zb,s.zt))}"><small>Зона від</small><b>${F(Math.min(s.zb,s.zt))}</b></div><div class="cell cp" tabindex="0" data-v="${F(Math.max(s.zb,s.zt))}"><small>Зона до</small><b>${F(Math.max(s.zb,s.zt))}</b></div></div>
-  <div class="row"><span class="score">RR ${s.rr.toFixed(1)} · бал ${s.score} · клас ${s.tier} · ціна ${F(s.price)}</span><button class="copy" data-t="${esc(txt)}">Копіювати рівні</button></div>
-  <details><summary>Чому і що робити</summary>
+  const dist=(Math.abs(s.price-s.entry)/s.price*100).toFixed(2);
+  return `<article class="card ${s.dir}">${head(s)}${meter(s)}${chart(s)}${ladder(s)}
+  <div class="grid"><div class="cell cp" tabindex="0" data-v="${F(s.entry)}"><small>Вхід</small><b>${F(s.entry)}</b></div><div class="cell cp" tabindex="0" data-v="${F(s.sl)}"><small>Стоп</small><b>${F(s.sl)}</b></div><div class="cell cp" tabindex="0" data-v="${F(s.tp)}"><small>Тейк</small><b>${F(s.tp)}</b></div><div class="cell cp" tabindex="0" data-v="${F(Math.min(s.zb,s.zt))}"><small>Зона від</small><b>${F(Math.min(s.zb,s.zt))}</b></div><div class="cell cp" tabindex="0" data-v="${F(Math.max(s.zb,s.zt))}"><small>Зона до</small><b>${F(Math.max(s.zb,s.zt))}</b></div><div class="cell"><small>До входу</small><b>${s.state==="ENTER"?"в зоні":dist+"%"}</b></div></div>
+  <div class="row"><span class="score">RR ${s.rr.toFixed(1)} · бал ${s.score} · ціна ${F(s.price)}</span><button class="copy" data-t="${esc(txt)}">Копіювати рівні</button></div>
+  <details><summary>Правила, причини і план</summary>
+    <h3>Чек-лист правил (${s.nOk} з ${s.nAll})</h3>${ckList(s)}
     <h3>Чому</h3><ul>${s.reasons.map(x=>`<li>${esc(x)}</li>`).join("")}${s.warns.map(x=>`<li class="w">${esc(x)}</li>`).join("")}</ul>
     <h3>План</h3><ul>${s.plan.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
   </details></article>`;}
+function rcard(s){
+  return `<article class="card ${s.dir} ${s.state}">${head(s)}${meter(s)}${chart(s)}
+  <div class="radar">${s.plan.map(x=>`<p>${esc(x)}</p>`).join("")}</div>
+  <details><summary>Чек-лист правил (${s.nOk} з ${s.nAll})</summary>${ckList(s)}</details></article>`;}
+let last=null;
+function render(){
+  if(!last)return;const {sigs}=last;
+  const dirOk=s=>cfg.dir==="all"||s.dir===cfg.dir,btcOk=s=>!(cfg.btc==="hide"&&s.btcBad);
+  const dist=s=>s.entry!=null?Math.abs(s.price-s.entry)/s.price:1;
+  const SORT={score:(x,y)=>y.score-x.score,rules:(x,y)=>y.nOk/y.nAll-x.nOk/x.nAll||y.score-x.score,rr:(x,y)=>y.rr-x.rr,dist:(x,y)=>dist(x)-dist(y)}[cfg.sort]||((x,y)=>y.score-x.score);
+  const acts=sigs.filter(s=>(s.state==="ENTER"||s.state==="WAIT")&&s.score>=(+cfg.min||0)&&s.rr>=(+cfg.minrr||0)&&s.nOk>=(+cfg.minrules||0)&&dirOk(s)&&btcOk(s))
+    .sort((x,y)=>x.state===y.state?SORT(x,y):x.state==="ENTER"?-1:1);
+  const watch=sigs.filter(s=>s.state==="WATCH"&&dirOk(s)&&btcOk(s)).sort((x,y)=>y.nOk-x.nOk);
+  const skips=cfg.skips==="1"?sigs.filter(s=>s.state==="SKIP"&&dirOk(s)):[];
+  const nl=acts.filter(s=>s.dir==="LONG").length,ns=acts.length-nl;
+  const best=acts.slice().sort((x,y)=>y.nOk/y.nAll-x.nOk/x.nAll)[0];
+  const avg=acts.length?(acts.reduce((t,s)=>t+s.nOk/s.nAll,0)/acts.length*100).toFixed(0):"–";
+  $("stats").innerHTML=`<div class="tile"><small>Сетапів</small><b>${acts.length}</b><div class="ls"><span style="flex:${nl||0}"></span><span style="flex:${ns||0}"></span></div></div>
+  <div class="tile"><small>Long / Short</small><b>${nl}<i> / </i>${ns}</b></div>
+  <div class="tile"><small>Сер. правил</small><b>${avg}<i>${acts.length?"%":""}</i></b></div>
+  <div class="tile"><small>Найкращий</small><b style="font-size:13px">${best?esc(nice(best.symbol))+`<i> ${best.nOk}/${best.nAll}</i>`:"–"}</b></div>`;
+  $("setups").innerHTML=acts.length?acts.map(card).join(""):`<div class="empty">Готових сетапів немає${sigs.some(s=>s.state==="ENTER"||s.state==="WAIT")?" під твої фільтри":""}.<br>Це нормально: менше угод, краще.</div>`;
+  $("radar").innerHTML=(watch.length?watch.map(rcard).join(""):`<div class="empty">На радарі порожньо.</div>`)+
+    (skips.length?`<div class="subh">Пропущені</div>`+skips.map(rcard).join(""):"");
+  $("n-setups").textContent=acts.length||"";$("n-radar").textContent=watch.length||"";
+  document.title=(acts.length?`(${acts.length}) `:"")+"SMC Скрінер";
+  return acts;}
+function notifyNew(fresh){
+  if(cfg.sound==="1")beep();
+  if(cfg.vibro==="1"&&navigator.vibrate)try{navigator.vibrate([180,80,180]);}catch(e){}
+  if(cfg.notify==="1"&&"Notification" in window&&Notification.permission==="granted")
+    try{new Notification(`Новий сетап: ${fresh.length}`,{body:fresh.map(s=>`${nice(s.symbol)} ${s.dir} · ${s.nOk}/${s.nAll} правил · RR ${s.rr.toFixed(1)}`).join("\n"),tag:"smc"});}catch(e){}}
 let toastT;
 function toast(t){const el=$("toast");el.textContent=t;el.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove("show"),1600);}
 function copyText(t){
@@ -422,14 +608,14 @@ async function scan(){
   try{
     status("Підключаюсь до біржі…");
     const ex=await pickExchange();const tfs=MODES[cfg.mode];
-    const a={tfs,balance:+cfg.balance||0,risk:+cfg.risk||1,lookback:80};
+    const a={tfs,balance:+cfg.balance||0,risk:+cfg.risk||1,lookback:Math.max(20,+cfg.lookback||80),bars:Math.max(20,Math.min(120,+cfg.bars||48))};
     let syms;
     if(cfg.symbols.trim())syms=cfg.symbols.toUpperCase().split(/[\s,;]+/).filter(Boolean);
     else{const all=await ex.list(),have=new Set(all),m=cfg.markets;syms=[];
       if(m.crypto)syms.push(...all.filter(s=>!GROUP[s]&&!DUP.includes(s)&&!STABLES.some(x=>s.startsWith(x))).slice(0,Math.max(5,Math.min(150,+cfg.top||30))));
       for(const g in TRAD)if(m[g])syms.push(...TRAD[g].filter(s=>s[1]===":"||have.has(s)));
       if(!syms.length)throw new Error("не вибрано жодного ринку. Увімкни хоча б один у налаштуваннях.");}
-    try{const [hb]=biasOf((await ex.klines("BTCUSDT",tfs[1],200)).slice(0,-1));
+    let hb="";try{[hb]=biasOf((await ex.klines("BTCUSDT",tfs[1],200)).slice(0,-1));
       lastBtc=`<span class="chip ${hb==="bull"?"bull":hb==="bear"?"bear":""}">BTC ${tfs[1].toUpperCase()}: ${hb==="bull"?"бичий":hb==="bear"?"ведмежий":"без тренду"}</span>`;header();}catch(e){}
     const now=kyiv();const sigs=[];let done=0,flat=0,errs=0,closed=0;
     if(tickCache.name!==ex.name||Date.now()-tickCache.at>1800000)tickCache={at:Date.now(),name:ex.name,m:await loadTicks(ex)};
@@ -443,20 +629,22 @@ async function scan(){
       catch(e){errs++;}
       done++;$("prog").style.width=Math.round(done/syms.length*100)+"%";status(`Перевіряю ${done} з ${syms.length}…`);});
     if(errs===syms.length)throw new Error("жодна пара не завантажилась. Перевір список пар або мережу.");
-    const acts=sigs.filter(s=>(s.state==="ENTER"||s.state==="WAIT")&&s.score>=(+cfg.min||0))
-      .sort((x,y)=>(x.state===y.state?y.score-x.score:x.state==="ENTER"?-1:1));
-    const watch=sigs.filter(s=>s.state==="WATCH");
-    $("setups").innerHTML=acts.length?acts.map(card).join(""):`<div class="empty">Готових сетапів немає.<br>Це нормально: менше угод, краще.</div>`;
-    $("radar").innerHTML=watch.length?watch.map(s=>`<article class="card ${s.dir}"><div class="row"><div class="row"><span class="sym">${esc(nice(s.symbol))}</span><span class="dir">${s.dir}</span><span class="mk">${GNAME[s.group]||""} · ${esc(s.src||"")}</span></div><span class="score">ціна ${fmt(s.price)}</span></div><div class="radar">${s.plan.map(x=>`<p>${esc(x)}</p>`).join("")}</div></article>`).join(""):`<div class="empty">На радарі порожньо.</div>`;
-    $("n-setups").textContent=acts.length||"";$("n-radar").textContent=watch.length||"";
+    for(const r of sigs){
+      if(r.group==="crypto"&&cfg.btc!=="off"&&hb){
+        const ok=(r.dir==="LONG"&&hb==="bull")||(r.dir==="SHORT"&&hb==="bear");r.btcBad=!ok&&hb!=="flat";
+        r.checks.push({k:"btc",ok,t:hb==="flat"?"BTC без тренду":`BTC ${tfs[1].toUpperCase()} ${hb==="bull"?"бичий":"ведмежий"}`+(ok?", в ту ж сторону":", проти угоди")});
+        if(r.btcBad&&cfg.btc==="warn")r.warns.unshift(`BTC ${tfs[1].toUpperCase()} проти ${r.dir}: альти зазвичай ідуть за BTC`);}
+      r.nAll=r.checks.length;r.nOk=r.checks.filter(c=>c.ok===true).length;}
+    last={sigs};const acts=render();
     const fresh=acts.filter(s=>!seen.has(s.id));fresh.forEach(s=>seen.add(s.id));
-    if(fresh.length&&cfg.sound==="1")beep();
-    document.title=(acts.length?`(${acts.length}) `:"")+"SMC Скрінер";
+    if(fresh.length)notifyNew(fresh);
     const t=kyiv();
     status(`${ex.name} · ${String(t.hour).padStart(2,"0")}:${String(t.min).padStart(2,"0")} · перевірено ${syms.length}, без тренду ${flat}`+(closed?`, ринок закритий ${closed}`:"")+(errs?`, помилок ${errs}`:"")+(fresh.length?` · нових сетапів: ${fresh.length}`:""));
   }catch(e){status("Помилка: "+e.message,true);}
   busy=false;$("scanBtn").disabled=false;setTimeout(()=>{$("prog").style.width="0";},600);}
-function schedule(){if(timer)clearInterval(timer);timer=null;const m=+cfg.loop||0;if(m>0)timer=setInterval(scan,Math.max(1,m)*60000);}
+const inKZ=()=>{const h=kyiv().hour;return (h>=9&&h<12)||(h>=14&&h<17);};
+function schedule(){if(timer)clearInterval(timer);timer=null;const m=+cfg.loop||0;
+  if(m>0)timer=setInterval(()=>{if(cfg.kzonly==="1"&&!inKZ())return;scan();},Math.max(1,m)*60000);}
 $("scanBtn").addEventListener("click",scan);schedule();
 if(window.self===window.top)scan();
 </script>
