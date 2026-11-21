@@ -127,6 +127,18 @@ nav button em{font-style:normal;font:11px var(--mono);margin-left:4px;opacity:.8
 .jr small{color:var(--mute);font-size:11px;display:block}
 .jr b{font:600 13px var(--mono)}
 .jr .res{text-align:right;white-space:nowrap}
+.hctl{display:flex;gap:6px;flex-wrap:wrap}
+.hctl button{background:var(--panel2);border:1px solid var(--line);color:var(--mute);border-radius:999px;padding:5px 10px;font:600 12px var(--sans);cursor:pointer}
+.hctl button.on{background:var(--text);color:#10151f;border-color:var(--text)}
+details.hx{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--mute);border-radius:10px}
+details.hx.win{border-left-color:var(--long)}details.hx.loss{border-left-color:var(--short)}details.hx.open{border-left-color:var(--accent)}
+details.hx>summary{list-style:none;padding:8px 10px;display:flex;justify-content:space-between;gap:8px;align-items:center;color:var(--text);font-weight:400}
+details.hx>summary::-webkit-details-marker{display:none}
+details.hx>summary small{color:var(--mute);font-size:11px;display:block}
+details.hx>summary b{font:600 13px var(--mono)}
+.hd{padding:0 10px 10px;display:flex;flex-direction:column;gap:8px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;font-size:12.5px}
+.kv span{color:var(--mute)}.kv b{font:600 12.5px var(--mono);text-align:right}
 .btns{display:flex;gap:8px;flex-wrap:wrap}
 .btns .btn2{flex:1;padding:8px 10px;font-size:13px}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
@@ -155,7 +167,9 @@ nav button em{font-style:normal;font:11px var(--mono);margin-left:4px;opacity:.8
     </section>
     <section class="view" id="v-stats">
       <p class="note">Кожен сетап з вкладки «Сетапи» записується сюди. Результат рахується по свічках: налився ліміт → що першим, SL чи TP. Без часткової фіксації на FTA і без комісій; якщо SL і TP в одній свічці, рахується стоп.</p>
+      <div class="mkts" id="st-seg"><button type="button" data-s="ov" class="on">Огляд</button><button type="button" data-s="hist">Історія угод</button></div>
       <div id="stats-body"></div>
+      <div id="hist-body" hidden></div>
       <div class="btns"><button class="btn2" id="j-upd" type="button">Оновити результати</button><button class="btn2" id="j-exp" type="button">Експорт</button><button class="btn2" id="j-imp" type="button">Імпорт</button><button class="btn2" id="j-clr" type="button">Очистити</button></div>
       <input type="file" id="j-file" accept=".json,application/json" hidden>
     </section>
@@ -254,7 +268,7 @@ nav button em{font-style:normal;font:11px var(--mono);margin-left:4px;opacity:.8
 <div id="toast"></div>
 <script>
 /*CORE*/
-const UI_EN={"Скрінер": "Screener", "Сканувати ринок": "Scan market", "Крипта, форекс, метали, індекси. Дані беруться з біржі напряму.": "Crypto, forex, metals, indices. Data comes straight from the exchange.", "Sweep уже був, структура ще не зламана. Входу немає, поки не буде BOS тілом.": "Sweep happened, structure not broken yet. No entry until a body BOS.", "Скан": "Scan", "Біржа": "Exchange", "Авто (Bybit, якщо ні, то Binance)": "Auto (Bybit, else Binance)", "Режим": "Mode", "Інтрадей: D1 / 4H / M15": "Intraday: D1 / 4H / M15", "Скальп: 4H / 1H / M5": "Scalp: 4H / 1H / M5", "Ринки": "Markets", "Крипта": "Crypto", "Форекс": "Forex", "Метали": "Metals", "Індекси": "Indices", "Акції": "Stocks", "Форекс: EURUSD, GBPUSD, USDJPY (Bybit), AUDUSD, USDCAD, USDCHF, EURCHF (Kraken). Метали: золото, срібло. Індекси: NAS100, GER40, SPX500, US30, UK100 (Gate). Джерело видно на картці. Це котирування крипто-бірж: ціна може на кілька пунктів відрізнятись від брокера, звіряй рівні на своєму графіку.": "Forex: EURUSD, GBPUSD, USDJPY (Bybit), AUDUSD, USDCAD, USDCHF, EURCHF (Kraken). Metals: gold, silver. Indices: NAS100, GER40, SPX500, US30, UK100 (Gate). Source is shown on the card. These are crypto-exchange quotes: price may differ from your broker by a few points, check levels on your own chart.", "Крипто-пар за обігом": "Crypto pairs by volume", "Глибина пошуку sweep, свічок": "Sweep lookback, candles", "Свій список (через кому, порожньо = топ за обігом)": "Custom list (comma-separated, empty = top by volume)", "Фільтри": "Filters", "Напрямок": "Direction", "LONG і SHORT": "LONG and SHORT", "Лише LONG": "LONG only", "Лише SHORT": "SHORT only", "Сортування": "Sort by", "За балом": "Score", "За к-стю правил": "Rules confirmed", "За RR": "RR", "Найближчі до входу": "Closest to entry", "Мін. бал": "Min score", "Мін. правил ✓ (з 14)": "Min rules ✓ (of 14)", "Мін. RR": "Min RR", "Крипта проти BTC": "Crypto against BTC", "Показувати з попередженням": "Show with warning", "Ховати": "Hide", "Не перевіряти": "Don't check", "Пропущені сетапи (ціль відпрацювала, зону тестували, RR < 2)": "Skipped setups (target hit, zone tested, RR < 2)", "Не показувати": "Hide", "Показувати на радарі": "Show on radar", "Ризик": "Risk", "Депозит, USDT": "Balance, USDT", "Ризик на угоду, %": "Risk per trade, %", "Автооновлення і сповіщення": "Auto-refresh and alerts", "Автооновлення, хв (0 = вимк.)": "Auto-refresh, min (0 = off)", "Автоскан лише в kill zone": "Auto-scan only in kill zone", "Ні, завжди": "No, always", "Так": "Yes", "Звук про новий сетап": "Sound on new setup", "Увімкнено": "On", "Вимкнено": "Off", "Вібрація (телефон)": "Vibration (phone)", "Сповіщення браузера": "Browser notifications", "Сповіщення браузера працюють на комп'ютері. На Android Chrome вони можуть не з'являтись (браузер вимагає встановлений застосунок), тут я не перевіряв. Вібрація працює на Android, на iPhone ні.": "Browser notifications work on desktop. On Android Chrome they may not appear (needs an installed app); not verified. Vibration works on Android, not on iPhone.", "Вигляд": "Display", "Графік на картці": "Chart on card", "Показувати": "Show", "Сховати": "Hide", "Свічок на графіку": "Candles on chart", "Бал: A від 12, B від 9. Правила: 13 пунктів стратегії + BTC для крипти. Бектесту немає, пороги стартові. Календар новин не перевіряється: перед FOMC / NFP / CPI не входь. Автооновлення працює, поки сторінка відкрита.": "Score: A from 12, B from 9. Rules: 13 strategy points + BTC for crypto. Not backtested, thresholds are a starting point. News calendar is not checked: don't enter before FOMC / NFP / CPI. Auto-refresh works while the page is open.", "Скинути налаштування": "Reset settings", "Сетапи": "Setups", "Радар": "Radar", "Налаштування": "Settings","Статистика":"Stats","Оновити результати":"Update results","Експорт":"Export","Імпорт":"Import","Очистити":"Clear","Кожен сетап з вкладки «Сетапи» записується сюди. Результат рахується по свічках: налився ліміт → що першим, SL чи TP. Без часткової фіксації на FTA і без комісій; якщо SL і TP в одній свічці, рахується стоп.":"Every setup from the Setups tab is logged here. Results are computed from candles: limit filled → which came first, SL or TP. No partial take at FTA, no fees; if SL and TP are in the same candle it counts as a stop."};
+const UI_EN={"Скрінер": "Screener", "Сканувати ринок": "Scan market", "Крипта, форекс, метали, індекси. Дані беруться з біржі напряму.": "Crypto, forex, metals, indices. Data comes straight from the exchange.", "Sweep уже був, структура ще не зламана. Входу немає, поки не буде BOS тілом.": "Sweep happened, structure not broken yet. No entry until a body BOS.", "Скан": "Scan", "Біржа": "Exchange", "Авто (Bybit, якщо ні, то Binance)": "Auto (Bybit, else Binance)", "Режим": "Mode", "Інтрадей: D1 / 4H / M15": "Intraday: D1 / 4H / M15", "Скальп: 4H / 1H / M5": "Scalp: 4H / 1H / M5", "Ринки": "Markets", "Крипта": "Crypto", "Форекс": "Forex", "Метали": "Metals", "Індекси": "Indices", "Акції": "Stocks", "Форекс: EURUSD, GBPUSD, USDJPY (Bybit), AUDUSD, USDCAD, USDCHF, EURCHF (Kraken). Метали: золото, срібло. Індекси: NAS100, GER40, SPX500, US30, UK100 (Gate). Джерело видно на картці. Це котирування крипто-бірж: ціна може на кілька пунктів відрізнятись від брокера, звіряй рівні на своєму графіку.": "Forex: EURUSD, GBPUSD, USDJPY (Bybit), AUDUSD, USDCAD, USDCHF, EURCHF (Kraken). Metals: gold, silver. Indices: NAS100, GER40, SPX500, US30, UK100 (Gate). Source is shown on the card. These are crypto-exchange quotes: price may differ from your broker by a few points, check levels on your own chart.", "Крипто-пар за обігом": "Crypto pairs by volume", "Глибина пошуку sweep, свічок": "Sweep lookback, candles", "Свій список (через кому, порожньо = топ за обігом)": "Custom list (comma-separated, empty = top by volume)", "Фільтри": "Filters", "Напрямок": "Direction", "LONG і SHORT": "LONG and SHORT", "Лише LONG": "LONG only", "Лише SHORT": "SHORT only", "Сортування": "Sort by", "За балом": "Score", "За к-стю правил": "Rules confirmed", "За RR": "RR", "Найближчі до входу": "Closest to entry", "Мін. бал": "Min score", "Мін. правил ✓ (з 14)": "Min rules ✓ (of 14)", "Мін. RR": "Min RR", "Крипта проти BTC": "Crypto against BTC", "Показувати з попередженням": "Show with warning", "Ховати": "Hide", "Не перевіряти": "Don't check", "Пропущені сетапи (ціль відпрацювала, зону тестували, RR < 2)": "Skipped setups (target hit, zone tested, RR < 2)", "Не показувати": "Hide", "Показувати на радарі": "Show on radar", "Ризик": "Risk", "Депозит, USDT": "Balance, USDT", "Ризик на угоду, %": "Risk per trade, %", "Автооновлення і сповіщення": "Auto-refresh and alerts", "Автооновлення, хв (0 = вимк.)": "Auto-refresh, min (0 = off)", "Автоскан лише в kill zone": "Auto-scan only in kill zone", "Ні, завжди": "No, always", "Так": "Yes", "Звук про новий сетап": "Sound on new setup", "Увімкнено": "On", "Вимкнено": "Off", "Вібрація (телефон)": "Vibration (phone)", "Сповіщення браузера": "Browser notifications", "Сповіщення браузера працюють на комп'ютері. На Android Chrome вони можуть не з'являтись (браузер вимагає встановлений застосунок), тут я не перевіряв. Вібрація працює на Android, на iPhone ні.": "Browser notifications work on desktop. On Android Chrome they may not appear (needs an installed app); not verified. Vibration works on Android, not on iPhone.", "Вигляд": "Display", "Графік на картці": "Chart on card", "Показувати": "Show", "Сховати": "Hide", "Свічок на графіку": "Candles on chart", "Бал: A від 12, B від 9. Правила: 13 пунктів стратегії + BTC для крипти. Бектесту немає, пороги стартові. Календар новин не перевіряється: перед FOMC / NFP / CPI не входь. Автооновлення працює, поки сторінка відкрита.": "Score: A from 12, B from 9. Rules: 13 strategy points + BTC for crypto. Not backtested, thresholds are a starting point. News calendar is not checked: don't enter before FOMC / NFP / CPI. Auto-refresh works while the page is open.", "Скинути налаштування": "Reset settings", "Сетапи": "Setups", "Радар": "Radar", "Налаштування": "Settings","Статистика":"Stats","Огляд": "Overview","Історія угод": "Trade history","Оновити результати":"Update results","Експорт":"Export","Імпорт":"Import","Очистити":"Clear","Кожен сетап з вкладки «Сетапи» записується сюди. Результат рахується по свічках: налився ліміт → що першим, SL чи TP. Без часткової фіксації на FTA і без комісій; якщо SL і TP в одній свічці, рахується стоп.":"Every setup from the Setups tab is logged here. Results are computed from candles: limit filled → which came first, SL or TP. No partial take at FTA, no fees; if SL and TP are in the same candle it counts as a stop."};
 let LANG="uk";try{LANG=(JSON.parse(localStorage.getItem("smc-cfg")||"{}").lang)||"uk";}catch(e){}
 const L=(u,e)=>LANG==="en"?e:u,Lg=L;
 const MODES={intraday:["1d","4h","15m"],scalp:["4h","1h","5m"]};
@@ -525,7 +539,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
 const ST=LANG==="en"?{ENTER:"Enter now",WAIT:"Wait for limit",WATCH:"Wait for BOS",SKIP:"Skip"}:{ENTER:"Вхід зараз",WAIT:"Чекати лімітку",WATCH:"Чекати BOS",SKIP:"Пропуск"};
 // міні-графік: свічки молодшого ТФ + зона, вхід, стоп, тейк
 function chart(s){
-  const cs=s.candles;if(cfg.chart==="0"||!cs||cs.length<5)return "";
+  const cs=s.candles;if((cfg.chart==="0"&&!s.force)||!cs||cs.length<5)return "";
   const W=440,H=150,pd=6,RW=58,F=v=>PX(v,s.dec);
   const LN=[];
   if(s.entry!=null){LN.push([s.tp,"TP","var(--long)",""],[s.entry,L("Вхід","Entry"),"var(--accent)","4 3"],[s.sl,"SL","var(--short)",""]);}
@@ -542,7 +556,9 @@ function chart(s){
     g+=`<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${y(c[2]).toFixed(1)}" y2="${y(c[3]).toFixed(1)}" stroke="${col}" stroke-width="1" opacity="${last?1:.75}"/>`+
        `<rect x="${(x-cw*.35).toFixed(1)}" y="${t.toFixed(1)}" width="${(cw*.7).toFixed(1)}" height="${bh.toFixed(1)}" fill="${col}" opacity="${last?1:.75}"/>`;});
   const lab=LN.filter(x=>x[0]!=null).map(x=>({v:x[0],t:x[1],c:x[2],d:x[3],y:y(x[0])}));
-  lab.push({v:s.price,t:"",c:"var(--text)",d:"1 2",y:y(s.price),now:1});
+  if(s.price!=null)lab.push({v:s.price,t:"",c:"var(--text)",d:"1 2",y:y(s.price),now:1});
+  (s.marks||[]).forEach(mk=>{const i=cs.findIndex(c=>c[0]+(s.tfm||0)>mk.t);if(i<0)return;const x=(i*cw+cw/2).toFixed(1);
+    g+=`<line x1="${x}" x2="${x}" y1="0" y2="${H}" stroke="${mk.c}" stroke-width="1" stroke-dasharray="2 2" opacity=".8"/><text x="${(+x+3).toFixed(1)}" y="${mk.y||11}" font-size="9.5" font-family="var(--sans)" fill="${mk.c}">${esc(mk.l)}</text>`;});
   lab.forEach(l=>{g+=`<line x1="0" x2="${W-RW}" y1="${l.y.toFixed(1)}" y2="${l.y.toFixed(1)}" stroke="${l.c}" stroke-width="1" ${l.d?`stroke-dasharray="${l.d}"`:""} opacity="${l.now?.6:.9}"/>`;});
   const ord=lab.slice().sort((a,b)=>a.y-b.y);for(let i=1;i<ord.length;i++)if(ord[i].y-ord[i-1].y<12)ord[i].y=ord[i-1].y+12;
   ord.forEach(l=>{const ty=Math.min(H-3,Math.max(9,l.y+3.5));
@@ -687,7 +703,7 @@ function jAdd(acts,ex,tfs,now){const have=new Set(J.map(x=>x.id));let n=0;
   for(const s of acts){if(have.has(s.id))continue;n++;
     J.push({id:s.id,symbol:s.symbol,dir:s.dir,group:s.group,src:s.src,ex:exKey,tf:tfs[2],t0:Date.now(),dec:s.dec,
       entry:s.entry,sl:s.sl,tp:s.tp,rr:+s.rr.toFixed(2),nOk:s.nOk,nAll:s.nAll,tier:s.tier,score:s.score,
-      kz:[9,10,11,14,15,16].includes(now.hour),wd:now.wd,st:"wait"});}
+      kz:[9,10,11,14,15,16].includes(now.hour),wd:now.wd,st:"wait",ck:(s.checks||[]).map(c=>[c.ok===true?1:c.ok===false?0:-1,c.t])});}
   if(n)jSave();}
 // прогін сетапу по свічках після сигналу
 function sim(j,cs){const L1=j.dir==="LONG",tfm=TFMS[j.tf];
@@ -696,12 +712,12 @@ function sim(j,cs){const L1=j.dir==="LONG",tfm=TFMS[j.tf];
   for(const c of bars){const hi=c[2],lo=c[3];
     const hitE=L1?lo<=j.entry:hi>=j.entry,hitSL=L1?lo<=j.sl:hi>=j.sl,hitTP=L1?hi>=j.tp:lo<=j.tp;
     if(!filled){k++;
-      if(hitE){filled=true;j.st="open";j.tf1=c[0];if(hitSL){j.st="loss";j.r=-1;j.t1=c[0];return;}continue;}
+      if(hitE){filled=true;j.st="open";j.tf1=c[0];if(hitSL){j.st="loss";j.r=-1;j.t1=c[0];j.px1=j.sl;return;}continue;}
       if(hitTP){j.st="nofill";j.t1=c[0];return;}
       if(k>=EXP_BARS){j.st="expired";j.t1=c[0];return;}}
     else{if(j.tf1&&c[0]<=j.tf1)continue;
-      if(hitSL){j.st="loss";j.r=-1;j.t1=c[0];return;}
-      if(hitTP){j.st="win";j.r=j.rr;j.t1=c[0];return;}}}
+      if(hitSL){j.st="loss";j.r=-1;j.t1=c[0];j.px1=j.sl;return;}
+      if(hitTP){j.st="win";j.r=j.rr;j.t1=c[0];j.px1=j.tp;return;}}}
   if(bars[0][0]>j.t0+tfm&&j.st==="wait"&&Date.now()-j.t0>EXP_BARS*tfm*3){j.st="nodata";}}
 let jBusy=false;
 async function updJournal(){
@@ -740,7 +756,7 @@ function renderStats(){
   const st=JST(),closed=J.filter(j=>j.st==="win"||j.st==="loss").sort((a,b)=>a.t1-b.t1),a=agg(J);
   const act=J.filter(j=>j.st==="wait"||j.st==="open").length;
   $("n-stats").textContent=act||"";
-  if(!J.length){el.innerHTML=`<div class="empty">${L("Журнал порожній. Щойно скрінер покаже сетап, він з'явиться тут.","Journal is empty. Setups will appear here once the screener shows them.")}</div>`;return;}
+  if(!J.length){renderHist();el.innerHTML=`<div class="empty">${L("Журнал порожній. Щойно скрінер покаже сетап, він з'явиться тут.","Journal is empty. Setups will appear here once the screener shows them.")}</div>`;return;}
   const bin=j=>{const p=j.nOk/j.nAll;return p>=.85?"≥85%":p>=.7?"70–84%":p>=.55?"55–69%":"<55%";};
   const by=(f,keys)=>keys.map(k=>[k,J.filter(j=>f(j)===k)]);
   const wdN=LANG==="en"?["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]:["Пн","Вт","Ср","Чт","Пт","Сб","Нд"];
@@ -762,9 +778,59 @@ function renderStats(){
   ${table(L("За ринком","By market"),Object.keys(GNAME).map(k=>[GNAME[k],J.filter(j=>j.group===k)]))}
   ${table("Kill zone",[[L("В kill zone","In kill zone"),J.filter(j=>j.kz)],[L("Поза kill zone","Outside"),J.filter(j=>!j.kz)]])}
   ${table(L("За днем тижня","By weekday"),wdN.map((n,i)=>[n,J.filter(j=>j.wd===i)]))}
-  <div class="subh">${L("Журнал","Journal")} (${J.length})</div>
-  ${J.slice().reverse().slice(0,60).map(j=>`<div class="jr ${j.st}"><div><b>${esc(nice(j.symbol))} ${j.dir}</b> <small>${tm(j.t0)} · ${j.nOk}/${j.nAll} ${L("правил","rules")} · ${j.tier} · ${j.tf.toUpperCase()}</small><small>${L("вхід","entry")} ${PX(j.entry,j.dec)} · SL ${PX(j.sl,j.dec)} · TP ${PX(j.tp,j.dec)}</small></div>
-    <div class="res"><b style="color:${j.st==="win"?"var(--long)":j.st==="loss"?"var(--short)":"inherit"}">${j.r!=null?(j.r>0?"+":"")+j.r.toFixed(1)+"R":""}</b><small>${st[j.st]}</small></div></div>`).join("")}`;}
+`;renderHist();}
+// ------------------------------------------------------------- історія угод
+let hF="all",hQ="",hN=30;const hC={};
+const tmF=t=>{if(!t)return "–";const d=new Date(t);return `${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;};
+const durF=ms=>{if(!(ms>0))return "–";const m=Math.round(ms/6e4),h=Math.floor(m/60),d=Math.floor(h/24);return d?`${d}${L("д","d")} ${h%24}${L("г","h")}`:h?`${h}${L("г","h")} ${m%60}${L("хв","m")}`:`${m}${L("хв","m")}`;};
+const HF={all:j=>true,closed:j=>j.st==="win"||j.st==="loss",win:j=>j.st==="win",loss:j=>j.st==="loss",act:j=>j.st==="wait"||j.st==="open",nf:j=>j.st==="nofill"||j.st==="expired"||j.st==="nodata"};
+function renderHist(){const el=$("hist-body");if(!el)return;
+  const st=JST(),wdN=LANG==="en"?["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]:["Пн","Вт","Ср","Чт","Пт","Сб","Нд"];
+  const rows=J.filter(HF[hF]).filter(j=>!hQ||nice(j.symbol).toUpperCase().includes(hQ)).sort((a,b)=>b.t0-a.t0);
+  const nb=(k,t)=>`<button type="button" data-hf="${k}" class="${hF===k?"on":""}">${t} ${J.filter(HF[k]).length}</button>`;
+  el.innerHTML=`<div class="hctl">${nb("all",L("Усі","All"))}${nb("closed",L("Закриті","Closed"))}${nb("win",L("Тейк","Win"))}${nb("loss",L("Стоп","Loss"))}${nb("act",L("Активні","Active"))}${nb("nf",L("Без входу","No fill"))}</div>
+  <input id="h-q" type="text" placeholder="${L("Пошук монети","Search symbol")}" value="${esc(hQ)}" autocapitalize="characters" style="margin-top:8px">
+  <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">${rows.length?rows.slice(0,hN).map(j=>{const F=v=>PX(v,j.dec);
+    const res=j.r!=null?(j.r>0?"+":"")+j.r.toFixed(1)+"R":"";
+    return `<details class="hx ${j.st}" data-id="${esc(j.id)}"><summary><div><b>${esc(nice(j.symbol))} ${j.dir}</b><small>${tmF(j.t0)} · ${j.nOk}/${j.nAll} ${L("правил","rules")} · ${j.tier}</small></div>
+      <div class="res" style="text-align:right"><b style="color:${j.st==="win"?"var(--long)":j.st==="loss"?"var(--short)":"inherit"}">${res}</b><small>${st[j.st]}</small></div></summary>
+      <div class="hd"><div class="hchart" data-id="${esc(j.id)}"><div class="note">${L("Завантажую графік…","Loading chart…")}</div></div>
+      <div class="kv"><span>${L("Сигнал","Signal")}</span><b>${tmF(j.t0)}</b><span>${L("Ліміт налився","Filled")}</span><b>${tmF(j.tf1)}</b>
+        <span>${L("Закриття","Closed")}</span><b>${j.st==="win"||j.st==="loss"?tmF(j.t1):"–"}</b><span>${L("В позиції","Time in trade")}</span><b>${j.tf1&&(j.st==="win"||j.st==="loss")?durF(j.t1-j.tf1+TFMS[j.tf]):j.st==="open"?durF(Date.now()-j.tf1):"–"}</b>
+        <span>${L("Вхід","Entry")}</span><b>${F(j.entry)}</b><span>SL</span><b>${F(j.sl)}</b><span>TP</span><b>${F(j.tp)}</b><span>${L("Вихід","Exit")}</span><b>${j.px1!=null?F(j.px1):"–"}</b>
+        <span>RR</span><b>${j.rr}</b><span>${L("Результат","Result")}</span><b>${res||"–"}</b>
+        <span>${L("Клас / бал","Grade / score")}</span><b>${j.tier} / ${j.score}</b><span>${L("ТФ / ринок","TF / market")}</span><b>${j.tf.toUpperCase()} · ${esc(GNAME[j.group]||"")}</b>
+        <span>${L("День / сесія","Day / session")}</span><b>${wdN[j.wd]||"–"} · ${j.kz?"KZ":L("поза KZ","out KZ")}</b><span>${L("Біржа","Exchange")}</span><b>${esc(j.src||j.ex||"")}</b></div>
+      ${j.ck&&j.ck.length?`<h3>${L("Правила на момент сигналу","Rules at signal")} (${j.nOk}/${j.nAll})</h3><ul class="ck">${j.ck.map(c=>`<li class="${c[0]===1?"":c[0]===0?"n":"p"}">${esc(c[1])}</li>`).join("")}</ul>`:""}
+      </div></details>`;}).join(""):`<div class="empty">${L("Тут поки порожньо.","Nothing here yet.")}</div>`}</div>
+  ${rows.length>hN?`<button class="btn2" id="h-more" type="button">${L("Показати ще","Show more")} (${rows.length-hN})</button>`:""}
+  <div class="btns"><button class="btn2" id="h-csv" type="button">${L("Історія в CSV (Excel)","History as CSV (Excel)")}</button></div>`;}
+async function histChart(j,box){
+  const tfm=TFMS[j.tf],start=j.t0-30*tfm,end=(j.st==="win"||j.st==="loss"||j.st==="nofill"||j.st==="expired")&&j.t1?j.t1+12*tfm:Date.now();
+  const need=Math.ceil((Date.now()-start)/tfm)+2;
+  if(need>1000){box.innerHTML=`<div class="note">${L("Свічки за цей період біржа вже не віддає.","The exchange no longer serves candles for this period.")}</div>`;return;}
+  try{const cs=hC[j.id]||(hC[j.id]=clean(await klAny(EX[j.ex]||EX.bybit,j.symbol,j.tf,need)));
+    let w=cs.filter(c=>c[0]>=start&&c[0]<=end);if(w.length>160)w=w.slice(0,160);
+    const marks=[{t:j.t0,l:L("сигнал","signal"),c:"var(--mute)",y:11}];
+    if(j.tf1)marks.push({t:j.tf1,l:L("вхід","fill"),c:"var(--accent)",y:23});
+    if(j.t1&&(j.st==="win"||j.st==="loss"))marks.push({t:j.t1,l:j.st==="win"?"TP":"SL",c:j.st==="win"?"var(--long)":"var(--short)",y:35});
+    box.innerHTML=chart({symbol:j.symbol,dec:j.dec,candles:w,entry:j.entry,sl:j.sl,tp:j.tp,price:null,force:1,marks,tfm})||`<div class="note">${L("Мало свічок для графіка.","Not enough candles.")}</div>`;}
+  catch(e){box.innerHTML=`<div class="note">${L("Не вдалось завантажити свічки: ","Could not load candles: ")}${esc(e.message)}</div>`;}}
+document.addEventListener("toggle",e=>{const d=e.target;if(!d.classList||!d.classList.contains("hx")||!d.open)return;
+  const j=J.find(x=>x.id===d.dataset.id),box=d.querySelector(".hchart");if(j&&box&&!box.dataset.done){box.dataset.done=1;histChart(j,box);}},true);
+$("hist-body").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.hf){hF=b.dataset.hf;hN=30;renderHist();}
+  else if(b.id==="h-more"){hN+=30;renderHist();}
+  else if(b.id==="h-csv"){const st=JST(),q=v=>`"${String(v==null?"":v).replace(/"/g,'""')}"`;
+    const head=["signal","symbol","dir","tf","market","status","filled","closed","entry","sl","tp","exit","rr","result_R","rules_ok","rules_all","grade","score","kill_zone","weekday"];
+    const lines=J.slice().sort((a,b)=>a.t0-b.t0).map(j=>[tmF(j.t0),nice(j.symbol),j.dir,j.tf,j.group,st[j.st],j.tf1?tmF(j.tf1):"",j.t1&&(j.st==="win"||j.st==="loss")?tmF(j.t1):"",j.entry,j.sl,j.tp,j.px1==null?"":j.px1,j.rr,j.r==null?"":j.r,j.nOk,j.nAll,j.tier,j.score,j.kz?1:0,j.wd+1].map(q).join(";"));
+    const blob=new Blob(["﻿"+head.join(";")+"\n"+lines.join("\n")],{type:"text/csv"});
+    const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="smc-history.csv";document.body.appendChild(a);a.click();a.remove();}});
+$("hist-body").addEventListener("input",e=>{if(e.target.id!=="h-q")return;hQ=e.target.value.trim().toUpperCase();const pos=e.target.selectionStart;
+  renderHist();const q=$("h-q");q.focus();try{q.setSelectionRange(pos,pos);}catch(err){}});
+document.querySelectorAll("#st-seg button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("#st-seg button").forEach(x=>x.classList.toggle("on",x===b));
+  $("stats-body").hidden=b.dataset.s!=="ov";$("hist-body").hidden=b.dataset.s!=="hist";}));
 $("j-upd").addEventListener("click",()=>{toast(L("Оновлюю…","Updating…"));updJournal();});
 $("j-exp").addEventListener("click",()=>{const b=new Blob([JSON.stringify(J,null,1)],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="smc-journal.json";document.body.appendChild(a);a.click();a.remove();});
