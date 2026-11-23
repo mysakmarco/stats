@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ["screener/bot.mjs", ".github/workflows/screener-bot.yml"]
+    paths: ["screener/bot.mjs", "screener/bot-config.json", ".github/workflows/screener-bot.yml"]
 permissions:
   contents: write
 concurrency:
@@ -42,6 +42,7 @@ jobs:
                    https://api.kraken.com/0/public/Time; do
             echo "$(curl -s -o /dev/null -m 10 -w '%{http_code}' "$u") $u"
           done
+          for g in 1D 4H 15m; do echo "bitget $g: $(curl -s -m 10 "https://api.bitget.com/api/v2/mix/market/candles?symbol=BTCUSDT&productType=USDT-FUTURES&granularity=$g&limit=1000" | head -c 160) ... $(curl -s -m 10 "https://api.bitget.com/api/v2/mix/market/candles?symbol=BTCUSDT&productType=USDT-FUTURES&granularity=$g&limit=1000" | grep -o '\],\[' | wc -l) rows"; done
           echo "$(curl -s -o /dev/null -m 10 -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"type":"meta"}' https://api.hyperliquid.xyz/info) hyperliquid"
           } > data/screener/probe.txt 2>&1; cat data/screener/probe.txt
       - name: Scan
