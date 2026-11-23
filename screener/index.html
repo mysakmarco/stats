@@ -735,8 +735,8 @@ const jLoad=()=>{try{return JSON.parse(localStorage.getItem("smc-journal")||"[]"
 let jCleared=+(localStorage.getItem("smc-journal-cleared")||0);
 let J=jMerge(jLoad(),[],jCleared);
 // перед записом зливаємо з тим, що вже лежить у браузері (друга вкладка не затре угоди)
-const jSave=()=>{J=jMerge(J,jLoad(),jCleared);try{localStorage.setItem("smc-journal",JSON.stringify(J));}catch(e){}};
-window.addEventListener("storage",e=>{if(e.key==="smc-journal"){J=jMerge(J,jLoad(),jCleared);renderStats();}
+const jSave=()=>{if(!jWriter()){try{localStorage.setItem("smc-journal",JSON.stringify(J));}catch(e){}return;}J=jMerge(J,jLoad(),jCleared);try{localStorage.setItem("smc-journal",JSON.stringify(J));}catch(e){}};
+window.addEventListener("storage",e=>{if(e.key==="smc-journal"&&jWriter()){J=jMerge(J,jLoad(),jCleared);renderStats();}
   if(e.key==="smc-journal-cleared"){jCleared=+(e.newValue||0);J=jMerge(J,[],jCleared);renderStats();}});
 // ---- GitHub: спільна історія
 const GH={repo:"mysakmarco/stats",branch:"screener-data",path:"screener/journal.json"};
@@ -794,7 +794,7 @@ async function ghSync(manual){
     if(att===2)throw new Error("GitHub HTTP "+w.status);}}
   catch(e){ghShow(L("Синхронізація: ","Sync: ")+(e.name==="AbortError"?L("GitHub не відповідає","GitHub not responding"):e.message),true);if(manual)toast(ghMsg);}
   finally{ghBusy=false;}}
-const jWriter=()=>!!(window.BOT||(ghTok()&&!ghBad));
+function jWriter(){return !!(window.BOT||(ghTok()&&!ghBad));}
 function jAdd(acts,ex,tfs,now){if(!jWriter())return;const have=new Set(J.map(x=>x.id));let n=0;
   const exKey=Object.keys(EX).find(k=>EX[k]===ex);
   for(const s of acts){if(have.has(s.id))continue;n++;
