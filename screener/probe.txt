@@ -1,4 +1,4 @@
-Mon Nov 23 20:26:04 UTC 2026
+Mon Nov 23 20:29:20 UTC 2026
 403 https://api.bybit.com/v5/market/time
 403 https://api.bytick.com/v5/market/time
 403 https://api.bybitglobal.com/v5/market/time
@@ -11,4 +11,7 @@ Mon Nov 23 20:26:04 UTC 2026
 200 https://contract.mexc.com/api/v1/contract/ping
 200 https://futures.kraken.com/derivatives/api/v3/tickers
 200 https://api.kraken.com/0/public/Time
+bitget 1D: {"code":"00000","msg":"success","requestTime":1795465763420,"data":[["1787760000000","77973.9","80767.5","77810","80262.2","34376.0829","2728456175.93151"],["17 ... 89 rows
+bitget 4H: {"code":"00000","msg":"success","requestTime":1795465763806,"data":[["1787702400000","78500.8","79210","78248","79052.3","3252.5539","256327044.89608"],["178771 ... 539 rows
+bitget 15m: {"code":"00000","msg":"success","requestTime":1795465764226,"data":[["1794565800000","69248.5","69322","69212.9","69287.3","144.9245","10040244.88954"],["179456 ... 999 rows
 200 hyperliquid
