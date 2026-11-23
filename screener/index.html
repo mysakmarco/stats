@@ -733,8 +733,9 @@ const GH={repo:"mysakmarco/stats",branch:"screener-data",path:"screener/journal.
 const b64e=x=>btoa(unescape(encodeURIComponent(x))),b64d=x=>decodeURIComponent(escape(atob(x.replace(/\s/g,""))));
 let ghBusy=false,ghAt=0,ghMsg="";
 function ghShow(m,err){ghMsg=m;[$("ghSt"),$("ghSt2")].forEach(el=>{if(el){el.textContent=m;el.style.color=err?"var(--short)":"";}});}
-async function ghReq(method,url,body){
-  const h={"Accept":"application/vnd.github+json"};if(cfg.ghtoken)h.Authorization="Bearer "+cfg.ghtoken.trim();
+const ghTok=()=>(cfg.ghtoken||"").replace(/[\s"'«»]/g,"");
+async function ghReq(method,url,body,noAuth){
+  const h={"Accept":"application/vnd.github+json"};if(ghTok()&&!noAuth)h.Authorization="Bearer "+ghTok();
   if(body)h["Content-Type"]="application/json";
   const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),20000);
   try{return await fetch("https://api.github.com/repos/"+GH.repo+url,{method,headers:h,body:body?JSON.stringify(body):undefined,cache:"no-store",signal:ctl.signal});}
@@ -743,8 +744,9 @@ const jText=(cl,tr)=>`{"v":1,"cleared":${cl},"trades":[\n`+tr.map(x=>JSON.string
 async function ghSync(manual){
   if(ghBusy)return;ghBusy=true;
   try{for(let att=0;att<3;att++){
-    const r=await ghReq("GET",`/contents/${GH.path}?ref=${GH.branch}&t=${Date.now()}`);
-    if(r.status===401){throw new Error(L("ключ GitHub недійсний","GitHub token is invalid"));}
+    let r=await ghReq("GET",`/contents/${GH.path}?ref=${GH.branch}&t=${Date.now()}`);
+    let badTok=false;
+    if(r.status===401){badTok=true;r=await ghReq("GET",`/contents/${GH.path}?ref=${GH.branch}&t=${Date.now()}`,null,true);}
     if(r.status===403||r.status===429){throw new Error(L("GitHub обмежив запити, спробую пізніше","GitHub rate limit, will retry later"));}
     let remote={cleared:0,trades:[]},sha=null,raw="";
     if(r.ok){const d=await r.json();sha=d.sha;
@@ -754,7 +756,12 @@ async function ghSync(manual){
     const cl=Math.max(jCleared,remote.cleared);
     if(cl!==jCleared){jCleared=cl;localStorage.setItem("smc-journal-cleared",String(cl));}
     J=jMerge(J,remote.trades,cl);jSave();renderStats();
-    if(!cfg.ghtoken){ghShow(L(`Історію з GitHub завантажено (${J.length}). Без ключа нові угоди з цього пристрою не потрапляють у спільну історію.`,`History loaded from GitHub (${J.length}). Without a token, new trades from this device are not shared.`));break;}
+    if(badTok){const t=ghTok();
+      throw new Error(L("GitHub не прийняв ключ (401), тому записую лише локально. Історію з GitHub прочитано. ","GitHub rejected the token (401): saving locally only. History was read from GitHub. ")+
+        (!/^(github_pat_|ghp_)/.test(t)?L(`Ключ має починатись з github_pat_ або ghp_, а в тебе починається з «${t.slice(0,6)}…».`,`Token must start with github_pat_ or ghp_, yours starts with “${t.slice(0,6)}…”.`)
+        :t.length<40?L(`Ключ закороткий (${t.length} символів): схоже, скопійовано не повністю.`,`Token is too short (${t.length} chars): probably not fully copied.`)
+        :L("Можливо, ключ прострочений або видалений. Створи новий і встав ще раз.","It may be expired or deleted. Create a new one and paste it again.")));}
+    if(!ghTok()){ghShow(L(`Історію з GitHub завантажено (${J.length}). Без ключа нові угоди з цього пристрою не потрапляють у спільну історію.`,`History loaded from GitHub (${J.length}). Without a token, new trades from this device are not shared.`));break;}
     const out=jText(cl,J);
     if(out===raw){ghAt=Date.now();ghShow(L(`Синхронізовано ${tmF(ghAt)} · угод ${J.length}`,`Synced ${tmF(ghAt)} · ${J.length} trades`));break;}
     if(!sha&&!J.length){ghShow(L("Спільна історія підключена, угод поки немає","Shared history connected, no trades yet"));break;}
@@ -928,10 +935,10 @@ let clrArm=0;$("j-clr").addEventListener("click",()=>{
   if(Date.now()-clrArm>3000){clrArm=Date.now();toast(L("Натисни ще раз, щоб видалити весь журнал","Tap again to delete the whole journal"));return;}
   jCleared=Date.now();localStorage.setItem("smc-journal-cleared",String(jCleared));J=[];
   try{localStorage.setItem("smc-journal","[]");}catch(e){}renderStats();clrArm=0;
-  toast(cfg.ghtoken?L("Журнал очищено, і на GitHub теж","Journal cleared, on GitHub too"):L("Очищено на цьому пристрої. Без ключа спільна історія на GitHub лишається.","Cleared on this device. Without a token the shared GitHub history stays."));
-  if(cfg.ghtoken)ghSync(true);});
+  toast(ghTok()?L("Журнал очищено, і на GitHub теж","Journal cleared, on GitHub too"):L("Очищено на цьому пристрої. Без ключа спільна історія на GitHub лишається.","Cleared on this device. Without a token the shared GitHub history stays."));
+  if(ghTok())ghSync(true);});
 $("ghBtn").addEventListener("click",()=>{ghShow(L("Синхронізую…","Syncing…"));ghSync(true);});
-renderStats();ghShow(cfg.ghtoken?L("Спільна історія: підключено","Shared history: connected"):L("Спільна історія: лише читання (немає ключа)","Shared history: read-only (no token)"));ghSync();
+renderStats();ghShow(ghTok()?L("Спільна історія: підключено","Shared history: connected"):L("Спільна історія: лише читання (немає ключа)","Shared history: read-only (no token)"));ghSync();
 const inKZ=()=>{const h=kyiv().hour;return (h>=9&&h<12)||(h>=14&&h<17);};
 function schedule(){if(timer)clearInterval(timer);timer=null;const m=+cfg.loop||0;
   if(m>0)timer=setInterval(()=>{if(cfg.kzonly==="1"&&!inKZ())return;scan();},Math.max(1,m)*60000);}
