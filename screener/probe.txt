@@ -1,0 +1,14 @@
+Mon Nov 23 20:26:04 UTC 2026
+403 https://api.bybit.com/v5/market/time
+403 https://api.bytick.com/v5/market/time
+403 https://api.bybitglobal.com/v5/market/time
+451 https://fapi.binance.com/fapi/v1/time
+200 https://data-api.binance.vision/api/v3/time
+200 https://www.okx.com/api/v5/public/time
+200 https://api.gateio.ws/api/v4/spot/time
+200 https://api-futures.kucoin.com/api/v1/timestamp
+200 https://api.bitget.com/api/v2/public/time
+200 https://contract.mexc.com/api/v1/contract/ping
+200 https://futures.kraken.com/derivatives/api/v3/tickers
+200 https://api.kraken.com/0/public/Time
+200 hyperliquid
