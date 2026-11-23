@@ -743,7 +743,7 @@ const GH={repo:"mysakmarco/stats",branch:"screener-data",path:"screener/journal.
 const b64e=x=>btoa(unescape(encodeURIComponent(x))),b64d=x=>decodeURIComponent(escape(atob(x.replace(/\s/g,""))));
 let ghBusy=false,ghAt=0,ghMsg="",ghBad=false;
 function ghShow(m,err){ghMsg=m;[$("ghSt"),$("ghSt2")].forEach(el=>{if(el){el.textContent=m;el.style.color=err?"var(--short)":"";}});}
-const ghTok=()=>{const t=(cfg.ghtoken||"").replace(/[\s"'«»]/g,"");const m=t.match(/github_pat_[A-Za-z0-9_]{20,}|ghp_[A-Za-z0-9]{20,}/);return m?m[0]:t;};
+const ghTok=()=>{const t=(cfg.ghtoken||"").replace(/[\s"'«»]/g,"");const m=t.match(/github_pat_[A-Za-z0-9_]{20,}|ghp_[A-Za-z0-9]{20,}/);return m?m[0]:"";};
 async function ghReq(method,url,body,noAuth){
   const h={"Accept":"application/vnd.github+json"};if(ghTok()&&!noAuth)h.Authorization="Bearer "+ghTok();
   if(body)h["Content-Type"]="application/json";
