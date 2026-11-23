@@ -167,6 +167,7 @@ details.hx>summary b{font:600 13px var(--mono)}
     </section>
     <section class="view" id="v-stats">
       <p class="note">Кожен сетап з вкладки «Сетапи» записується сюди. Результат рахується по свічках: налився ліміт → що першим, SL чи TP. Без часткової фіксації на FTA і без комісій; якщо SL і TP в одній свічці, рахується стоп.</p>
+      <p class="note" id="ghSt2"></p>
       <div class="mkts" id="st-seg"><button type="button" data-s="ov" class="on">Огляд</button><button type="button" data-s="hist">Історія угод</button></div>
       <div id="stats-body"></div>
       <div id="hist-body" hidden></div>
@@ -250,6 +251,14 @@ details.hx>summary b{font:600 13px var(--mono)}
       </label>
       <p class="note">Сповіщення браузера працюють на комп'ютері. На Android Chrome вони можуть не з'являтись (браузер вимагає встановлений застосунок), тут я не перевіряв. Вібрація працює на Android, на iPhone ні.</p>
 
+      <div class="sec">Спільна історія (GitHub)</div>
+      <p class="note">Журнал угод зберігається в репозиторії mysakmarco/stats (гілка screener-data, файл screener/journal.json) і однаковий на всіх пристроях. Без ключа пристрій лише читає історію. З ключем він ще й дописує нові угоди. Репозиторій публічний, тому історію угод може побачити будь-хто, хто знайде файл.</p>
+      <label>Ключ GitHub (fine-grained token, доступ Contents: Read and write лише до mysakmarco/stats)
+        <input id="s-ghtoken" type="password" autocomplete="off" placeholder="github_pat_…">
+      </label>
+      <p class="note">Ключ зберігається тільки в цьому браузері. Вводь його лише на своїх пристроях.</p>
+      <button class="btn2" id="ghBtn" type="button">Синхронізувати зараз</button>
+      <p class="note" id="ghSt"></p>
       <div class="sec">Вигляд</div>
       <div class="two">
         <label>Графік на картці
@@ -271,7 +280,7 @@ details.hx>summary b{font:600 13px var(--mono)}
 <div id="toast"></div>
 <script>
 /*CORE*/
-const UI_EN={"Скрінер": "Screener", "Сканувати ринок": "Scan market", "Крипта, форекс, метали, індекси. Дані беруться з біржі напряму.": "Crypto, forex, metals, indices. Data comes straight from the exchange.", "Тут ідеї, по яких ще рано входити: ліміт ще не налився або ще немає BOS тілом.": "Ideas not ready to enter yet: limit not filled or no body BOS yet.", "Скан": "Scan", "Біржа": "Exchange", "Авто (Bybit, якщо ні, то Binance)": "Auto (Bybit, else Binance)", "Режим": "Mode", "Інтрадей: D1 / 4H / M15": "Intraday: D1 / 4H / M15", "Скальп: 4H / 1H / M5": "Scalp: 4H / 1H / M5", "Ринки": "Markets", "Крипта": "Crypto", "Форекс": "Forex", "Метали": "Metals", "Індекси": "Indices", "Акції": "Stocks", "Форекс: EURUSD, GBPUSD, USDJPY (Bybit), AUDUSD, USDCAD, USDCHF, EURCHF (Kraken). Метали: золото, срібло. Індекси: NAS100, GER40, SPX500, US30, UK100 (Gate). Джерело видно на картці. Це котирування крипто-бірж: ціна може на кілька пунктів відрізнятись від брокера, звіряй рівні на своєму графіку.": "Forex: EURUSD, GBPUSD, USDJPY (Bybit), AUDUSD, USDCAD, USDCHF, EURCHF (Kraken). Metals: gold, silver. Indices: NAS100, GER40, SPX500, US30, UK100 (Gate). Source is shown on the card. These are crypto-exchange quotes: price may differ from your broker by a few points, check levels on your own chart.", "Крипто-пар за обігом": "Crypto pairs by volume", "Глибина пошуку sweep, свічок": "Sweep lookback, candles", "Свій список (через кому, порожньо = топ за обігом)": "Custom list (comma-separated, empty = top by volume)", "Фільтри": "Filters", "Напрямок": "Direction", "LONG і SHORT": "LONG and SHORT", "Лише LONG": "LONG only", "Лише SHORT": "SHORT only", "Сортування": "Sort by", "За балом": "Score", "За к-стю правил": "Rules confirmed", "За RR": "RR", "Найближчі до входу": "Closest to entry", "Мін. бал": "Min score", "Мін. правил ✓ (з 14)": "Min rules ✓ (of 14)", "Мін. RR": "Min RR", "Крипта проти BTC": "Crypto against BTC", "Показувати з попередженням": "Show with warning", "Ховати": "Hide", "Не перевіряти": "Don't check", "Пропущені сетапи (ціль відпрацювала, зону тестували, RR < 2)": "Skipped setups (target hit, zone tested, RR < 2)", "Не показувати": "Hide", "Показувати на радарі": "Show on radar", "Ризик": "Risk", "Депозит, USDT": "Balance, USDT", "Ризик на угоду, %": "Risk per trade, %", "Автооновлення і сповіщення": "Auto-refresh and alerts", "Автооновлення, хв (0 = вимк.)": "Auto-refresh, min (0 = off)", "Автоскан лише в kill zone": "Auto-scan only in kill zone", "Ні, завжди": "No, always", "Так": "Yes", "Звук про новий сетап": "Sound on new setup", "Увімкнено": "On", "Вимкнено": "Off", "Вібрація (телефон)": "Vibration (phone)", "Сповіщення браузера": "Browser notifications", "Сповіщення браузера працюють на комп'ютері. На Android Chrome вони можуть не з'являтись (браузер вимагає встановлений застосунок), тут я не перевіряв. Вібрація працює на Android, на iPhone ні.": "Browser notifications work on desktop. On Android Chrome they may not appear (needs an installed app); not verified. Vibration works on Android, not on iPhone.", "Вигляд": "Display", "Графік на картці": "Chart on card", "Показувати": "Show", "Сховати": "Hide", "Свічок на графіку": "Candles on chart", "Бал: A від 12, B від 9. Правила: 13 пунктів стратегії + BTC для крипти. Бектесту немає, пороги стартові. Календар новин не перевіряється: перед FOMC / NFP / CPI не входь. Автооновлення працює, поки сторінка відкрита.": "Score: A from 12, B from 9. Rules: 13 strategy points + BTC for crypto. Not backtested, thresholds are a starting point. News calendar is not checked: don't enter before FOMC / NFP / CPI. Auto-refresh works while the page is open.", "Скинути налаштування": "Reset settings", "Сетапи": "Setups", "Радар": "Radar", "Налаштування": "Settings","Статистика":"Stats","Угоди «чекати лімітку» (ціна ще не в зоні)":"«Wait for limit» trades (price not in zone yet)","На радарі (у сетапах лише готові до входу)":"On Radar (Setups shows only ready-to-enter)","У сетапах разом з готовими":"In Setups with ready ones","Огляд": "Overview","Історія угод": "Trade history","Оновити результати":"Update results","Експорт":"Export","Імпорт":"Import","Очистити":"Clear","Кожен сетап з вкладки «Сетапи» записується сюди. Результат рахується по свічках: налився ліміт → що першим, SL чи TP. Без часткової фіксації на FTA і без комісій; якщо SL і TP в одній свічці, рахується стоп.":"Every setup from the Setups tab is logged here. Results are computed from candles: limit filled → which came first, SL or TP. No partial take at FTA, no fees; if SL and TP are in the same candle it counts as a stop."};
+const UI_EN={"Скрінер": "Screener", "Сканувати ринок": "Scan market", "Крипта, форекс, метали, індекси. Дані беруться з біржі напряму.": "Crypto, forex, metals, indices. Data comes straight from the exchange.", "Тут ідеї, по яких ще рано входити: ліміт ще не налився або ще немає BOS тілом.": "Ideas not ready to enter yet: limit not filled or no body BOS yet.", "Скан": "Scan", "Біржа": "Exchange", "Авто (Bybit, якщо ні, то Binance)": "Auto (Bybit, else Binance)", "Режим": "Mode", "Інтрадей: D1 / 4H / M15": "Intraday: D1 / 4H / M15", "Скальп: 4H / 1H / M5": "Scalp: 4H / 1H / M5", "Ринки": "Markets", "Крипта": "Crypto", "Форекс": "Forex", "Метали": "Metals", "Індекси": "Indices", "Акції": "Stocks", "Форекс: EURUSD, GBPUSD, USDJPY (Bybit), AUDUSD, USDCAD, USDCHF, EURCHF (Kraken). Метали: золото, срібло. Індекси: NAS100, GER40, SPX500, US30, UK100 (Gate). Джерело видно на картці. Це котирування крипто-бірж: ціна може на кілька пунктів відрізнятись від брокера, звіряй рівні на своєму графіку.": "Forex: EURUSD, GBPUSD, USDJPY (Bybit), AUDUSD, USDCAD, USDCHF, EURCHF (Kraken). Metals: gold, silver. Indices: NAS100, GER40, SPX500, US30, UK100 (Gate). Source is shown on the card. These are crypto-exchange quotes: price may differ from your broker by a few points, check levels on your own chart.", "Крипто-пар за обігом": "Crypto pairs by volume", "Глибина пошуку sweep, свічок": "Sweep lookback, candles", "Свій список (через кому, порожньо = топ за обігом)": "Custom list (comma-separated, empty = top by volume)", "Фільтри": "Filters", "Напрямок": "Direction", "LONG і SHORT": "LONG and SHORT", "Лише LONG": "LONG only", "Лише SHORT": "SHORT only", "Сортування": "Sort by", "За балом": "Score", "За к-стю правил": "Rules confirmed", "За RR": "RR", "Найближчі до входу": "Closest to entry", "Мін. бал": "Min score", "Мін. правил ✓ (з 14)": "Min rules ✓ (of 14)", "Мін. RR": "Min RR", "Крипта проти BTC": "Crypto against BTC", "Показувати з попередженням": "Show with warning", "Ховати": "Hide", "Не перевіряти": "Don't check", "Пропущені сетапи (ціль відпрацювала, зону тестували, RR < 2)": "Skipped setups (target hit, zone tested, RR < 2)", "Не показувати": "Hide", "Показувати на радарі": "Show on radar", "Ризик": "Risk", "Депозит, USDT": "Balance, USDT", "Ризик на угоду, %": "Risk per trade, %", "Автооновлення і сповіщення": "Auto-refresh and alerts", "Автооновлення, хв (0 = вимк.)": "Auto-refresh, min (0 = off)", "Автоскан лише в kill zone": "Auto-scan only in kill zone", "Ні, завжди": "No, always", "Так": "Yes", "Звук про новий сетап": "Sound on new setup", "Увімкнено": "On", "Вимкнено": "Off", "Вібрація (телефон)": "Vibration (phone)", "Сповіщення браузера": "Browser notifications", "Сповіщення браузера працюють на комп'ютері. На Android Chrome вони можуть не з'являтись (браузер вимагає встановлений застосунок), тут я не перевіряв. Вібрація працює на Android, на iPhone ні.": "Browser notifications work on desktop. On Android Chrome they may not appear (needs an installed app); not verified. Vibration works on Android, not on iPhone.", "Вигляд": "Display", "Графік на картці": "Chart on card", "Показувати": "Show", "Сховати": "Hide", "Свічок на графіку": "Candles on chart", "Бал: A від 12, B від 9. Правила: 13 пунктів стратегії + BTC для крипти. Бектесту немає, пороги стартові. Календар новин не перевіряється: перед FOMC / NFP / CPI не входь. Автооновлення працює, поки сторінка відкрита.": "Score: A from 12, B from 9. Rules: 13 strategy points + BTC for crypto. Not backtested, thresholds are a starting point. News calendar is not checked: don't enter before FOMC / NFP / CPI. Auto-refresh works while the page is open.", "Скинути налаштування": "Reset settings", "Сетапи": "Setups", "Радар": "Radar", "Налаштування": "Settings","Статистика":"Stats","Спільна історія (GitHub)":"Shared history (GitHub)","Ключ GitHub (fine-grained token, доступ Contents: Read and write лише до mysakmarco/stats)":"GitHub token (fine-grained, Contents: Read and write, only mysakmarco/stats)","Ключ зберігається тільки в цьому браузері. Вводь його лише на своїх пристроях.":"The token is stored only in this browser. Enter it only on your own devices.","Синхронізувати зараз":"Sync now","Журнал угод зберігається в репозиторії mysakmarco/stats (гілка screener-data, файл screener/journal.json) і однаковий на всіх пристроях. Без ключа пристрій лише читає історію. З ключем він ще й дописує нові угоди. Репозиторій публічний, тому історію угод може побачити будь-хто, хто знайде файл.":"The trade journal is stored in the mysakmarco/stats repo (branch screener-data, file screener/journal.json) and is the same on every device. Without a token a device only reads it; with a token it also adds new trades. The repo is public, so anyone who finds the file can see the trade history.","Угоди «чекати лімітку» (ціна ще не в зоні)":"«Wait for limit» trades (price not in zone yet)","На радарі (у сетапах лише готові до входу)":"On Radar (Setups shows only ready-to-enter)","У сетапах разом з готовими":"In Setups with ready ones","Огляд": "Overview","Історія угод": "Trade history","Оновити результати":"Update results","Експорт":"Export","Імпорт":"Import","Очистити":"Clear","Кожен сетап з вкладки «Сетапи» записується сюди. Результат рахується по свічках: налився ліміт → що першим, SL чи TP. Без часткової фіксації на FTA і без комісій; якщо SL і TP в одній свічці, рахується стоп.":"Every setup from the Setups tab is logged here. Results are computed from candles: limit filled → which came first, SL or TP. No partial take at FTA, no fees; if SL and TP are in the same candle it counts as a stop."};
 let LANG="uk";try{LANG=(JSON.parse(localStorage.getItem("smc-cfg")||"{}").lang)||"uk";}catch(e){}
 const L=(u,e)=>LANG==="en"?e:u,Lg=L;
 const MODES={intraday:["1d","4h","15m"],scalp:["4h","1h","5m"]};
@@ -499,7 +508,7 @@ const EX={
 
 // ------------------------------------------------------------- інтерфейс
 const $=id=>document.getElementById(id);
-const DEF={lang:"uk",exchange:"auto",mode:"intraday",top:30,lookback:80,symbols:"",dir:"all",sort:"score",min:9,minrules:0,minrr:2,btc:"warn",skips:"0",waits:"radar",
+const DEF={lang:"uk",exchange:"auto",mode:"intraday",top:30,lookback:80,symbols:"",dir:"all",sort:"score",min:9,minrules:0,minrr:2,btc:"warn",skips:"0",waits:"radar",ghtoken:"",
   balance:1000,risk:1,loop:5,kzonly:"0",sound:"1",vibro:"1",notify:"0",chart:"1",bars:48};
 const MK={crypto:1,fx:1,metals:1,idx:1,stocks:0};
 let cfg=Object.assign({},DEF);
@@ -512,7 +521,7 @@ document.querySelectorAll("#s-markets button").forEach(b=>{const g=b.dataset.g;
 const seen=new Set();let timer=null,busy=false,lastBtc="";
 for(const k of Object.keys(DEF)){const el=$("s-"+k);el.value=cfg[k];
   el.addEventListener("change",()=>{cfg[k]=el.type==="number"?(+el.value||0):el.value;
-    save();if(k==="loop")schedule();
+    save();if(k==="loop")schedule();if(k==="ghtoken")ghSync(true);
     if(k==="notify"&&el.value==="1"&&"Notification" in window&&Notification.permission!=="granted")
       Notification.requestPermission().then(p=>{if(p!=="granted")toast(L("Браузер не дав дозвіл на сповіщення","Browser denied notifications"));});
     if(["dir","sort","min","minrules","minrr","btc","skips","waits","chart"].includes(k))render();});}
@@ -695,24 +704,86 @@ async function scan(){
     last={sigs};const acts=render();
     const fresh=acts.filter(s=>!seen.has(s.id));fresh.forEach(s=>seen.add(s.id));
     if(fresh.length)notifyNew(fresh);
-    jAdd(acts,ex,tfs,now);await updJournal();
+    jAdd(acts,ex,tfs,now);await updJournal();ghSync();
     const t=kyiv();
     status(`${ex.name} · ${String(t.hour).padStart(2,"0")}:${String(t.min).padStart(2,"0")} · ${L("перевірено","checked")} ${syms.length}, ${L("без тренду","no trend")} ${flat}`+(closed?`, ${L("ринок закритий","market closed")} ${closed}`:"")+(errs?`, ${L("помилок","errors")} ${errs}`:"")+(fresh.length?` · ${L("нових сетапів","new setups")}: ${fresh.length}`:""));
   }catch(e){status(L("Помилка: ","Error: ")+e.message,true);}
   busy=false;$("scanBtn").disabled=false;setTimeout(()=>{$("prog").style.width="0";},600);}
 // ---------------------------------------------------------- журнал / статистика
 const TFMS={"5m":3e5,"15m":9e5,"1h":36e5,"4h":144e5,"1d":864e5},EXP_BARS=48;
-let J=[];try{J=JSON.parse(localStorage.getItem("smc-journal")||"[]");}catch(e){J=[];}
-const jSave=()=>{try{localStorage.setItem("smc-journal",JSON.stringify(J));}catch(e){}};
+const RANK={wait:0,open:1};
+// злиття двох журналів: з одного id лишається найпросунутіший / найсвіжіший запис
+function jMerge(a,b,cl){const m=new Map();
+  for(const x of [...a,...b]){if(!x||!x.id||(cl&&x.t0<=cl))continue;const o=m.get(x.id);
+    if(!o){m.set(x.id,x);continue;}
+    const ra=RANK[o.st]??2,rb=RANK[x.st]??2;
+    const w=rb>ra||(rb===ra&&(x.u||0)>(o.u||0))?x:o,l=w===x?o:x;
+    if(w.mst==null&&l.mst!=null){w.mst=l.mst;w.mr=l.mr;w.mt=l.mt;}
+    m.set(x.id,w);}
+  return [...m.values()].sort((p,q)=>p.t0-q.t0);}
+const jLoad=()=>{try{return JSON.parse(localStorage.getItem("smc-journal")||"[]");}catch(e){return [];}};
+let jCleared=+(localStorage.getItem("smc-journal-cleared")||0);
+let J=jMerge(jLoad(),[],jCleared);
+// перед записом зливаємо з тим, що вже лежить у браузері (друга вкладка не затре угоди)
+const jSave=()=>{J=jMerge(J,jLoad(),jCleared);try{localStorage.setItem("smc-journal",JSON.stringify(J));}catch(e){}};
+window.addEventListener("storage",e=>{if(e.key==="smc-journal"){J=jMerge(J,jLoad(),jCleared);renderStats();}
+  if(e.key==="smc-journal-cleared"){jCleared=+(e.newValue||0);J=jMerge(J,[],jCleared);renderStats();}});
+// ---- GitHub: спільна історія
+const GH={repo:"mysakmarco/stats",branch:"screener-data",path:"screener/journal.json"};
+const b64e=x=>btoa(unescape(encodeURIComponent(x))),b64d=x=>decodeURIComponent(escape(atob(x.replace(/\s/g,""))));
+let ghBusy=false,ghAt=0,ghMsg="";
+function ghShow(m,err){ghMsg=m;[$("ghSt"),$("ghSt2")].forEach(el=>{if(el){el.textContent=m;el.style.color=err?"var(--short)":"";}});}
+async function ghReq(method,url,body){
+  const h={"Accept":"application/vnd.github+json"};if(cfg.ghtoken)h.Authorization="Bearer "+cfg.ghtoken.trim();
+  if(body)h["Content-Type"]="application/json";
+  const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),20000);
+  try{return await fetch("https://api.github.com/repos/"+GH.repo+url,{method,headers:h,body:body?JSON.stringify(body):undefined,cache:"no-store",signal:ctl.signal});}
+  finally{clearTimeout(tm);}}
+const jText=(cl,tr)=>`{"v":1,"cleared":${cl},"trades":[\n`+tr.map(x=>JSON.stringify(x)).join(",\n")+`\n]}`;
+async function ghSync(manual){
+  if(ghBusy)return;ghBusy=true;
+  try{for(let att=0;att<3;att++){
+    const r=await ghReq("GET",`/contents/${GH.path}?ref=${GH.branch}&t=${Date.now()}`);
+    if(r.status===401){throw new Error(L("ключ GitHub недійсний","GitHub token is invalid"));}
+    if(r.status===403||r.status===429){throw new Error(L("GitHub обмежив запити, спробую пізніше","GitHub rate limit, will retry later"));}
+    let remote={cleared:0,trades:[]},sha=null,raw="";
+    if(r.ok){const d=await r.json();sha=d.sha;
+      raw=d.content?b64d(d.content):await (await fetch(d.download_url,{cache:"no-store"})).text();
+      try{const o=JSON.parse(raw);remote=Array.isArray(o)?{cleared:0,trades:o}:{cleared:+o.cleared||0,trades:o.trades||[]};}catch(e){}}
+    else if(r.status!==404)throw new Error("GitHub HTTP "+r.status);
+    const cl=Math.max(jCleared,remote.cleared);
+    if(cl!==jCleared){jCleared=cl;localStorage.setItem("smc-journal-cleared",String(cl));}
+    J=jMerge(J,remote.trades,cl);jSave();renderStats();
+    if(!cfg.ghtoken){ghShow(L(`Історію з GitHub завантажено (${J.length}). Без ключа нові угоди з цього пристрою не потрапляють у спільну історію.`,`History loaded from GitHub (${J.length}). Without a token, new trades from this device are not shared.`));break;}
+    const out=jText(cl,J);
+    if(out===raw){ghAt=Date.now();ghShow(L(`Синхронізовано ${tmF(ghAt)} · угод ${J.length}`,`Synced ${tmF(ghAt)} · ${J.length} trades`));break;}
+    if(!sha&&!J.length){ghShow(L("Спільна історія підключена, угод поки немає","Shared history connected, no trades yet"));break;}
+    if(!sha){// гілки або файлу ще немає
+      const b=await ghReq("GET",`/branches/${GH.branch}`);
+      if(b.status===404){const m=await ghReq("GET","/git/ref/heads/main");if(!m.ok)throw new Error("GitHub HTTP "+m.status);
+        const ms=(await m.json()).object.sha;const c=await ghReq("POST","/git/refs",{ref:"refs/heads/"+GH.branch,sha:ms});
+        if(!c.ok&&c.status!==422)throw new Error(L("не вдалось створити гілку: HTTP ","could not create branch: HTTP ")+c.status);}}
+    const body={message:`journal: ${J.length} trades`,content:b64e(out),branch:GH.branch};if(sha)body.sha=sha;
+    const w=await ghReq("PUT",`/contents/${GH.path}`,body);
+    if(w.ok){ghAt=Date.now();ghShow(L(`Синхронізовано ${tmF(ghAt)} · угод ${J.length}`,`Synced ${tmF(ghAt)} · ${J.length} trades`));break;}
+    if(w.status===401||w.status===403||w.status===404)throw new Error(L("ключ не має права запису в mysakmarco/stats (HTTP ","token has no write access to mysakmarco/stats (HTTP ")+w.status+")");
+    if(att===2)throw new Error("GitHub HTTP "+w.status);}}
+  catch(e){ghShow(L("Синхронізація: ","Sync: ")+(e.name==="AbortError"?L("GitHub не відповідає","GitHub not responding"):e.message),true);if(manual)toast(ghMsg);}
+  finally{ghBusy=false;}}
 function jAdd(acts,ex,tfs,now){const have=new Set(J.map(x=>x.id));let n=0;
   const exKey=Object.keys(EX).find(k=>EX[k]===ex);
   for(const s of acts){if(have.has(s.id))continue;n++;
     J.push({id:s.id,symbol:s.symbol,dir:s.dir,group:s.group,src:s.src,ex:exKey,tf:tfs[2],t0:Date.now(),dec:s.dec,
       entry:s.entry,sl:s.sl,tp:s.tp,rr:+s.rr.toFixed(2),nOk:s.nOk,nAll:s.nAll,tier:s.tier,score:s.score,
-      kz:[9,10,11,14,15,16].includes(now.hour),wd:now.wd,st:"wait",ck:(s.checks||[]).map(c=>[c.ok===true?1:c.ok===false?0:-1,c.t])});}
+      kz:[9,10,11,14,15,16].includes(now.hour),wd:now.wd,st:"wait",p0:s.price,u:Date.now(),ck:(s.checks||[]).map(c=>[c.ok===true?1:c.ok===false?0:-1,c.t])});}
   if(n)jSave();}
 // прогін сетапу по свічках після сигналу
-function sim(j,cs){const L1=j.dir==="LONG",tfm=TFMS[j.tf];
+// «якби вхід по ринку одразу по ціні сигналу»: що першим, SL чи TP
+function simMkt(j,cs){if(j.p0==null||j.mst!=null)return;const L1=j.dir==="LONG";
+  for(const c of cs){if(c[0]<=j.t0)continue;
+    if(L1?c[3]<=j.sl:c[2]>=j.sl){j.mst="loss";j.mr=-1;j.mt=c[0];return;}
+    if(L1?c[2]>=j.tp:c[3]<=j.tp){j.mst="win";j.mr=+(Math.abs(j.tp-j.p0)/Math.abs(j.p0-j.sl)).toFixed(2);j.mt=c[0];return;}}}
+function sim(j,cs){const L1=j.dir==="LONG",tfm=TFMS[j.tf];simMkt(j,cs);
   const bars=cs.filter(c=>c[0]+tfm>j.t0);if(!bars.length)return;
   let filled=j.st==="open",k=0;
   for(const c of bars){const hi=c[2],lo=c[3];
@@ -727,14 +798,16 @@ function sim(j,cs){const L1=j.dir==="LONG",tfm=TFMS[j.tf];
   if(bars[0][0]>j.t0+tfm&&j.st==="wait"&&Date.now()-j.t0>EXP_BARS*tfm*3){j.st="nodata";}}
 let jBusy=false;
 async function updJournal(){
-  const todo=J.filter(j=>j.st==="wait"||j.st==="open");if(jBusy||!todo.length){renderStats();return;}
+  const todo=J.filter(j=>j.st==="wait"||j.st==="open"||(j.p0!=null&&j.mst==null&&Date.now()-j.t0<9*864e5));if(jBusy||!todo.length){renderStats();return;}
   jBusy=true;
   try{await pool(todo,3,async j=>{
     try{const ex=EX[j.ex]||EX.bybit,tfm=TFMS[j.tf];
       const need=Math.min(1000,Math.max(20,Math.ceil((Date.now()-j.t0)/tfm)+3));
       const cs=clean(await klAny(ex,j.symbol,j.tf,need));
-      if(cs.length&&cs[0][0]>j.t0+tfm&&need>=1000){j.st="nodata";return;}
-      sim(j,cs.slice(0,-1).concat(cs.length?[cs[cs.length-1]]:[]));}catch(e){}});
+      const before=j.st+"|"+j.mst;
+      if(cs.length&&cs[0][0]>j.t0+tfm&&need>=1000){if(j.st==="wait"||j.st==="open"){j.st="nodata";j.u=Date.now();}return;}
+      if(j.st==="wait"||j.st==="open")sim(j,cs);else simMkt(j,cs);
+      if(j.st+"|"+j.mst!==before)j.u=Date.now();}catch(e){}});
     jSave();}finally{jBusy=false;}
   renderStats();}
 const JST=()=>LANG==="en"?{wait:"Waiting entry",open:"In position",win:"Take profit",loss:"Stop loss",nofill:"Left without entry",expired:"Limit not filled",nodata:"No data"}
@@ -780,6 +853,9 @@ function renderStats(){
   ${equity(closed)}
   ${table(L("За підтвердженими правилами","By confirmed rules"),by(bin,["≥85%","70–84%","55–69%","<55%"]))}
   ${table(L("За класом","By grade"),by(j=>j.tier,["A","B","C"]))}
+  ${(()=>{const M=J.filter(j=>j.mst).map(j=>({st:j.mst,r:j.mr,nOk:j.nOk,nAll:j.nAll,f:j.st==="win"||j.st==="loss"}));
+    return M.length?table(L("Якби вхід по ринку з ціни сигналу (усі сетапи, і ті, що без входу)","If entered at market at signal price (all setups, incl. no fill)"),
+      [[L("Усі","All"),M],[L("Ліміт налився","Limit filled"),M.filter(x=>x.f)],[L("Ліміт не налився","Limit not filled"),M.filter(x=>!x.f)],...["≥85%","70–84%","55–69%","<55%"].map(k=>[L("правил ","rules ")+k,M.filter(x=>bin(x)===k)])]):"";})()}
   ${table(L("За напрямком","By direction"),by(j=>j.dir,["LONG","SHORT"]))}
   ${table(L("За ринком","By market"),Object.keys(GNAME).map(k=>[GNAME[k],J.filter(j=>j.group===k)]))}
   ${table("Kill zone",[[L("В kill zone","In kill zone"),J.filter(j=>j.kz)],[L("Поза kill zone","Outside"),J.filter(j=>!j.kz)]])}
@@ -790,6 +866,7 @@ let hF="all",hQ="",hN=30;const hC={};
 const tmF=t=>{if(!t)return "–";const d=new Date(t);return `${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;};
 const durF=ms=>{if(!(ms>0))return "–";const m=Math.round(ms/6e4),h=Math.floor(m/60),d=Math.floor(h/24);return d?`${d}${L("д","d")} ${h%24}${L("г","h")}`:h?`${h}${L("г","h")} ${m%60}${L("хв","m")}`:`${m}${L("хв","m")}`;};
 const HF={all:j=>true,closed:j=>j.st==="win"||j.st==="loss",win:j=>j.st==="win",loss:j=>j.st==="loss",act:j=>j.st==="wait"||j.st==="open",nf:j=>j.st==="nofill"||j.st==="expired"||j.st==="nodata"};
+const mk=j=>j.p0==null?"–":j.mst?`${j.mst==="win"?"TP":"SL"} ${(j.mr>0?"+":"")+j.mr.toFixed(1)}R`:L("ще йде","pending");
 function renderHist(){const el=$("hist-body");if(!el)return;
   const st=JST(),wdN=LANG==="en"?["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]:["Пн","Вт","Ср","Чт","Пт","Сб","Нд"];
   const rows=J.filter(HF[hF]).filter(j=>!hQ||nice(j.symbol).toUpperCase().includes(hQ)).sort((a,b)=>b.t0-a.t0);
@@ -798,13 +875,15 @@ function renderHist(){const el=$("hist-body");if(!el)return;
   <input id="h-q" type="text" placeholder="${L("Пошук монети","Search symbol")}" value="${esc(hQ)}" autocapitalize="characters" style="margin-top:8px">
   <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">${rows.length?rows.slice(0,hN).map(j=>{const F=v=>PX(v,j.dec);
     const res=j.r!=null?(j.r>0?"+":"")+j.r.toFixed(1)+"R":"";
+    const mres=j.st!=="win"&&j.st!=="loss"&&j.mst?`<small>${L("по ринку","market")} ${(j.mr>0?"+":"")+j.mr.toFixed(1)}R</small>`:"";
     return `<details class="hx ${j.st}" data-id="${esc(j.id)}"><summary><div><b>${esc(nice(j.symbol))} ${j.dir}</b><small>${tmF(j.t0)} · ${j.nOk}/${j.nAll} ${L("правил","rules")} · ${j.tier}</small></div>
-      <div class="res" style="text-align:right"><b style="color:${j.st==="win"?"var(--long)":j.st==="loss"?"var(--short)":"inherit"}">${res}</b><small>${st[j.st]}</small></div></summary>
+      <div class="res" style="text-align:right"><b style="color:${j.st==="win"?"var(--long)":j.st==="loss"?"var(--short)":"inherit"}">${res}</b><small>${st[j.st]}</small>${mres}</div></summary>
       <div class="hd"><div class="hchart" data-id="${esc(j.id)}"><div class="note">${L("Завантажую графік…","Loading chart…")}</div></div>
       <div class="kv"><span>${L("Сигнал","Signal")}</span><b>${tmF(j.t0)}</b><span>${L("Ліміт налився","Filled")}</span><b>${tmF(j.tf1)}</b>
         <span>${L("Закриття","Closed")}</span><b>${j.st==="win"||j.st==="loss"?tmF(j.t1):"–"}</b><span>${L("В позиції","Time in trade")}</span><b>${j.tf1&&(j.st==="win"||j.st==="loss")?durF(j.t1-j.tf1+TFMS[j.tf]):j.st==="open"?durF(Date.now()-j.tf1):"–"}</b>
         <span>${L("Вхід","Entry")}</span><b>${F(j.entry)}</b><span>SL</span><b>${F(j.sl)}</b><span>TP</span><b>${F(j.tp)}</b><span>${L("Вихід","Exit")}</span><b>${j.px1!=null?F(j.px1):"–"}</b>
         <span>RR</span><b>${j.rr}</b><span>${L("Результат","Result")}</span><b>${res||"–"}</b>
+        <span>${L("Ціна в момент сигналу","Price at signal")}</span><b>${j.p0!=null?F(j.p0):"–"}</b><span>${L("Якби по ринку","If market entry")}</span><b>${mk(j)}</b>
         <span>${L("Клас / бал","Grade / score")}</span><b>${j.tier} / ${j.score}</b><span>${L("ТФ / ринок","TF / market")}</span><b>${j.tf.toUpperCase()} · ${esc(GNAME[j.group]||"")}</b>
         <span>${L("День / сесія","Day / session")}</span><b>${wdN[j.wd]||"–"} · ${j.kz?"KZ":L("поза KZ","out KZ")}</b><span>${L("Біржа","Exchange")}</span><b>${esc(j.src||j.ex||"")}</b></div>
       ${j.ck&&j.ck.length?`<h3>${L("Правила на момент сигналу","Rules at signal")} (${j.nOk}/${j.nAll})</h3><ul class="ck">${j.ck.map(c=>`<li class="${c[0]===1?"":c[0]===0?"n":"p"}">${esc(c[1])}</li>`).join("")}</ul>`:""}
@@ -837,18 +916,22 @@ $("hist-body").addEventListener("input",e=>{if(e.target.id!=="h-q")return;hQ=e.t
 document.querySelectorAll("#st-seg button").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll("#st-seg button").forEach(x=>x.classList.toggle("on",x===b));
   $("stats-body").hidden=b.dataset.s!=="ov";$("hist-body").hidden=b.dataset.s!=="hist";}));
-$("j-upd").addEventListener("click",()=>{toast(L("Оновлюю…","Updating…"));updJournal();});
+$("j-upd").addEventListener("click",async()=>{toast(L("Оновлюю…","Updating…"));await updJournal();ghSync(true);});
 $("j-exp").addEventListener("click",()=>{const b=new Blob([JSON.stringify(J,null,1)],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="smc-journal.json";document.body.appendChild(a);a.click();a.remove();});
 $("j-imp").addEventListener("click",()=>$("j-file").click());
 $("j-file").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;
   try{const d=JSON.parse(await f.text());if(!Array.isArray(d))throw 0;const have=new Set(J.map(x=>x.id));let n=0;
-    d.forEach(x=>{if(x&&x.id&&!have.has(x.id)){J.push(x);n++;}});J.sort((a,b)=>a.t0-b.t0);jSave();renderStats();toast(L("Додано: ","Added: ")+n);}
+    d.forEach(x=>{if(x&&x.id&&!have.has(x.id))n++;});J=jMerge(J,d,jCleared);jSave();renderStats();toast(L("Додано: ","Added: ")+n);ghSync();}
   catch(err){toast(L("Файл не схожий на журнал","Not a journal file"));}e.target.value="";});
 let clrArm=0;$("j-clr").addEventListener("click",()=>{
   if(Date.now()-clrArm>3000){clrArm=Date.now();toast(L("Натисни ще раз, щоб видалити весь журнал","Tap again to delete the whole journal"));return;}
-  J=[];jSave();renderStats();clrArm=0;toast(L("Журнал очищено","Journal cleared"));});
-renderStats();
+  jCleared=Date.now();localStorage.setItem("smc-journal-cleared",String(jCleared));J=[];
+  try{localStorage.setItem("smc-journal","[]");}catch(e){}renderStats();clrArm=0;
+  toast(cfg.ghtoken?L("Журнал очищено, і на GitHub теж","Journal cleared, on GitHub too"):L("Очищено на цьому пристрої. Без ключа спільна історія на GitHub лишається.","Cleared on this device. Without a token the shared GitHub history stays."));
+  if(cfg.ghtoken)ghSync(true);});
+$("ghBtn").addEventListener("click",()=>{ghShow(L("Синхронізую…","Syncing…"));ghSync(true);});
+renderStats();ghShow(cfg.ghtoken?L("Спільна історія: підключено","Shared history: connected"):L("Спільна історія: лише читання (немає ключа)","Shared history: read-only (no token)"));ghSync();
 const inKZ=()=>{const h=kyiv().hour;return (h>=9&&h<12)||(h>=14&&h<17);};
 function schedule(){if(timer)clearInterval(timer);timer=null;const m=+cfg.loop||0;
   if(m>0)timer=setInterval(()=>{if(cfg.kzonly==="1"&&!inKZ())return;scan();},Math.max(1,m)*60000);}
