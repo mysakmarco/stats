@@ -30,21 +30,6 @@ jobs:
             git worktree add -B screener-data data HEAD
           fi
           mkdir -p data/screener
-      - name: Probe exchanges
-        run: |
-          {
-          date -u
-          for u in https://api.bybit.com/v5/market/time https://api.bytick.com/v5/market/time https://api.bybitglobal.com/v5/market/time \
-                   https://fapi.binance.com/fapi/v1/time https://data-api.binance.vision/api/v3/time \
-                   https://www.okx.com/api/v5/public/time https://api.gateio.ws/api/v4/spot/time \
-                   https://api-futures.kucoin.com/api/v1/timestamp https://api.bitget.com/api/v2/public/time \
-                   https://contract.mexc.com/api/v1/contract/ping https://futures.kraken.com/derivatives/api/v3/tickers \
-                   https://api.kraken.com/0/public/Time; do
-            echo "$(curl -s -o /dev/null -m 10 -w '%{http_code}' "$u") $u"
-          done
-          for g in 1D 4H 15m; do echo "bitget $g: $(curl -s -m 10 "https://api.bitget.com/api/v2/mix/market/candles?symbol=BTCUSDT&productType=USDT-FUTURES&granularity=$g&limit=1000" | head -c 160) ... $(curl -s -m 10 "https://api.bitget.com/api/v2/mix/market/candles?symbol=BTCUSDT&productType=USDT-FUTURES&granularity=$g&limit=1000" | grep -o '\],\[' | wc -l) rows"; done
-          echo "$(curl -s -o /dev/null -m 10 -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"type":"meta"}' https://api.hyperliquid.xyz/info) hyperliquid"
-          } > data/screener/probe.txt 2>&1; cat data/screener/probe.txt
       - name: Scan
         run: node screener/bot.mjs data/screener/journal.json data/screener/bot-status.json
       - name: Save
@@ -53,7 +38,7 @@ jobs:
           cd data
           git config user.name "screener-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add screener/journal.json screener/bot-status.json screener/probe.txt
+          git add screener/journal.json screener/bot-status.json
           git commit -q -m "bot: journal $(date -u +%H:%M)" || exit 0
           for i in 1 2 3 4; do
             git push -q origin HEAD:screener-data && exit 0
@@ -62,7 +47,7 @@ jobs:
             git show FETCH_HEAD:screener/journal.json > /tmp/remote.json 2>/dev/null || echo '{}' > /tmp/remote.json
             node ../screener/bot.mjs --merge screener/journal.json /tmp/remote.json
             git reset -q --soft FETCH_HEAD
-            git add screener/journal.json screener/bot-status.json screener/probe.txt
+            git add screener/journal.json screener/bot-status.json
             git commit -q -m "bot: journal $(date -u +%H:%M)" || exit 0
           done
           exit 1
