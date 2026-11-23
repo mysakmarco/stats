@@ -97,6 +97,8 @@ nav button em{font-style:normal;font:11px var(--mono);margin-left:4px;opacity:.8
 .rnum.hi{color:var(--long)}.rnum.md{color:var(--accent)}.rnum.lo{color:var(--short)}
 .segs{flex:1;display:flex;gap:3px}
 .segs span{flex:1;height:8px;border-radius:2px;background:var(--panel2);border:1px solid var(--line)}
+.segs b.sep{width:6px;flex:none}
+.ckh{font-size:12px;margin:8px 0 2px;color:var(--mute);font-weight:600}
 .segs span.y{background:var(--long);border-color:var(--long)}
 .segs span.n{background:rgba(240,97,109,.55);border-color:transparent}
 .tier{font:800 14px var(--mono);width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--panel2);color:var(--mute);flex:none}
@@ -218,6 +220,9 @@ details.hx>summary b{font:600 13px var(--mono)}
           <select id="s-btc"><option value="warn">Показувати з попередженням</option><option value="hide">Ховати</option><option value="off">Не перевіряти</option></select>
         </label>
       </div>
+      <label>Вхід лише коли всі критичні правила ✓
+        <select id="s-critonly"><option value="1">Так (рекомендовано)</option><option value="0">Ні, показувати й з ✗ у критичних</option></select>
+      </label>
       <label>Угоди «чекати лімітку» (ціна ще не в зоні)
         <select id="s-waits"><option value="radar">На радарі (у сетапах лише готові до входу)</option><option value="setups">У сетапах разом з готовими</option></select>
       </label>
@@ -281,7 +286,7 @@ details.hx>summary b{font:600 13px var(--mono)}
 <div id="toast"></div>
 <script>
 /*CORE*/
-const UI_EN={"Скрінер": "Screener", "Сканувати ринок": "Scan market", "Крипта, форекс, метали, індекси. Дані беруться з біржі напряму.": "Crypto, forex, metals, indices. Data comes straight from the exchange.", "Тут ідеї, по яких ще рано входити: ліміт ще не налився або ще немає BOS тілом.": "Ideas not ready to enter yet: limit not filled or no body BOS yet.", "Скан": "Scan", "Біржа": "Exchange", "Авто (Bybit → Binance → Bitget)": "Auto (Bybit → Binance → Bitget)", "Режим": "Mode", "Інтрадей: D1 / 4H / M15": "Intraday: D1 / 4H / M15", "Скальп: 4H / 1H / M5": "Scalp: 4H / 1H / M5", "Ринки": "Markets", "Крипта": "Crypto", "Форекс": "Forex", "Метали": "Metals", "Індекси": "Indices", "Акції": "Stocks", "Форекс: EURUSD, GBPUSD, USDJPY (Bybit), AUDUSD, USDCAD, USDCHF, EURCHF (Kraken). Метали: золото, срібло. Індекси: NAS100, GER40, SPX500, US30, UK100 (Gate). Джерело видно на картці. Це котирування крипто-бірж: ціна може на кілька пунктів відрізнятись від брокера, звіряй рівні на своєму графіку.": "Forex: EURUSD, GBPUSD, USDJPY (Bybit), AUDUSD, USDCAD, USDCHF, EURCHF (Kraken). Metals: gold, silver. Indices: NAS100, GER40, SPX500, US30, UK100 (Gate). Source is shown on the card. These are crypto-exchange quotes: price may differ from your broker by a few points, check levels on your own chart.", "Крипто-пар за обігом": "Crypto pairs by volume", "Глибина пошуку sweep, свічок": "Sweep lookback, candles", "Свій список (через кому, порожньо = топ за обігом)": "Custom list (comma-separated, empty = top by volume)", "Фільтри": "Filters", "Напрямок": "Direction", "LONG і SHORT": "LONG and SHORT", "Лише LONG": "LONG only", "Лише SHORT": "SHORT only", "Сортування": "Sort by", "За балом": "Score", "За к-стю правил": "Rules confirmed", "За RR": "RR", "Найближчі до входу": "Closest to entry", "Мін. бал": "Min score", "Мін. правил ✓ (з 14)": "Min rules ✓ (of 14)", "Мін. RR": "Min RR", "Крипта проти BTC": "Crypto against BTC", "Показувати з попередженням": "Show with warning", "Ховати": "Hide", "Не перевіряти": "Don't check", "Пропущені сетапи (ціль відпрацювала, зону тестували, RR < 2)": "Skipped setups (target hit, zone tested, RR < 2)", "Не показувати": "Hide", "Показувати на радарі": "Show on radar", "Ризик": "Risk", "Депозит, USDT": "Balance, USDT", "Ризик на угоду, %": "Risk per trade, %", "Автооновлення і сповіщення": "Auto-refresh and alerts", "Автооновлення, хв (0 = вимк.)": "Auto-refresh, min (0 = off)", "Автоскан лише в kill zone": "Auto-scan only in kill zone", "Ні, завжди": "No, always", "Так": "Yes", "Звук про новий сетап": "Sound on new setup", "Увімкнено": "On", "Вимкнено": "Off", "Вібрація (телефон)": "Vibration (phone)", "Сповіщення браузера": "Browser notifications", "Сповіщення браузера працюють на комп'ютері. На Android Chrome вони можуть не з'являтись (браузер вимагає встановлений застосунок), тут я не перевіряв. Вібрація працює на Android, на iPhone ні.": "Browser notifications work on desktop. On Android Chrome they may not appear (needs an installed app); not verified. Vibration works on Android, not on iPhone.", "Вигляд": "Display", "Графік на картці": "Chart on card", "Показувати": "Show", "Сховати": "Hide", "Свічок на графіку": "Candles on chart", "Бал: A від 12, B від 9. Правила: 13 пунктів стратегії + BTC для крипти. Бектесту немає, пороги стартові. Календар новин не перевіряється: перед FOMC / NFP / CPI не входь. Автооновлення працює, поки сторінка відкрита.": "Score: A from 12, B from 9. Rules: 13 strategy points + BTC for crypto. Not backtested, thresholds are a starting point. News calendar is not checked: don't enter before FOMC / NFP / CPI. Auto-refresh works while the page is open.", "Скинути налаштування": "Reset settings", "Сетапи": "Setups", "Радар": "Radar", "Налаштування": "Settings","Статистика":"Stats","Спільна історія (GitHub)":"Shared history (GitHub)","Ключ GitHub (fine-grained token, доступ Contents: Read and write лише до mysakmarco/stats)":"GitHub token (fine-grained, Contents: Read and write, only mysakmarco/stats)","Ключ зберігається тільки в цьому браузері. Вводь його лише на своїх пристроях.":"The token is stored only in this browser. Enter it only on your own devices.","Синхронізувати зараз":"Sync now","Стерти ключ у полі":"Clear token field","Журнал угод зберігається в репозиторії mysakmarco/stats (гілка screener-data, файл screener/journal.json) і однаковий на всіх пристроях. Без ключа пристрій лише читає історію. З ключем він ще й дописує нові угоди. Репозиторій публічний, тому історію угод може побачити будь-хто, хто знайде файл.":"The trade journal is stored in the mysakmarco/stats repo (branch screener-data, file screener/journal.json) and is the same on every device. Without a token a device only reads it; with a token it also adds new trades. The repo is public, so anyone who finds the file can see the trade history.","Угоди «чекати лімітку» (ціна ще не в зоні)":"«Wait for limit» trades (price not in zone yet)","На радарі (у сетапах лише готові до входу)":"On Radar (Setups shows only ready-to-enter)","У сетапах разом з готовими":"In Setups with ready ones","Огляд": "Overview","Історія угод": "Trade history","Оновити результати":"Update results","Експорт":"Export","Імпорт":"Import","Очистити":"Clear","Угоди записує бот на сервері GitHub кожні 5–15 хв, тому статистика однакова на всіх пристроях. Записується кожен сетап «Вхід зараз», який знайшов бот. Результат рахується по свічках: налився ліміт → що першим, SL чи TP. Без часткової фіксації на FTA і без комісій; якщо SL і TP в одній свічці, рахується стоп.":"Trades are logged by the server bot on GitHub every 5–15 min, so stats are identical on every device. Every «Enter now» setup the bot finds is logged. Results are computed from candles: limit filled → which came first, SL or TP. No partial take at FTA, no fees; if SL and TP are in the same candle it counts as a stop."};
+const UI_EN={"Скрінер": "Screener", "Сканувати ринок": "Scan market", "Крипта, форекс, метали, індекси. Дані беруться з біржі напряму.": "Crypto, forex, metals, indices. Data comes straight from the exchange.", "Тут ідеї, по яких ще рано входити: ліміт ще не налився або ще немає BOS тілом.": "Ideas not ready to enter yet: limit not filled or no body BOS yet.", "Скан": "Scan", "Біржа": "Exchange", "Авто (Bybit → Binance → Bitget)": "Auto (Bybit → Binance → Bitget)", "Режим": "Mode", "Інтрадей: D1 / 4H / M15": "Intraday: D1 / 4H / M15", "Скальп: 4H / 1H / M5": "Scalp: 4H / 1H / M5", "Ринки": "Markets", "Крипта": "Crypto", "Форекс": "Forex", "Метали": "Metals", "Індекси": "Indices", "Акції": "Stocks", "Форекс: EURUSD, GBPUSD, USDJPY (Bybit), AUDUSD, USDCAD, USDCHF, EURCHF (Kraken). Метали: золото, срібло. Індекси: NAS100, GER40, SPX500, US30, UK100 (Gate). Джерело видно на картці. Це котирування крипто-бірж: ціна може на кілька пунктів відрізнятись від брокера, звіряй рівні на своєму графіку.": "Forex: EURUSD, GBPUSD, USDJPY (Bybit), AUDUSD, USDCAD, USDCHF, EURCHF (Kraken). Metals: gold, silver. Indices: NAS100, GER40, SPX500, US30, UK100 (Gate). Source is shown on the card. These are crypto-exchange quotes: price may differ from your broker by a few points, check levels on your own chart.", "Крипто-пар за обігом": "Crypto pairs by volume", "Глибина пошуку sweep, свічок": "Sweep lookback, candles", "Свій список (через кому, порожньо = топ за обігом)": "Custom list (comma-separated, empty = top by volume)", "Фільтри": "Filters", "Напрямок": "Direction", "LONG і SHORT": "LONG and SHORT", "Лише LONG": "LONG only", "Лише SHORT": "SHORT only", "Сортування": "Sort by", "За балом": "Score", "За к-стю правил": "Rules confirmed", "За RR": "RR", "Найближчі до входу": "Closest to entry", "Мін. бал": "Min score", "Мін. правил ✓ (з 14)": "Min rules ✓ (of 14)", "Мін. RR": "Min RR", "Крипта проти BTC": "Crypto against BTC", "Показувати з попередженням": "Show with warning", "Ховати": "Hide", "Не перевіряти": "Don't check", "Пропущені сетапи (ціль відпрацювала, зону тестували, RR < 2)": "Skipped setups (target hit, zone tested, RR < 2)", "Не показувати": "Hide", "Показувати на радарі": "Show on radar", "Ризик": "Risk", "Депозит, USDT": "Balance, USDT", "Ризик на угоду, %": "Risk per trade, %", "Автооновлення і сповіщення": "Auto-refresh and alerts", "Автооновлення, хв (0 = вимк.)": "Auto-refresh, min (0 = off)", "Автоскан лише в kill zone": "Auto-scan only in kill zone", "Ні, завжди": "No, always", "Так": "Yes", "Звук про новий сетап": "Sound on new setup", "Увімкнено": "On", "Вимкнено": "Off", "Вібрація (телефон)": "Vibration (phone)", "Сповіщення браузера": "Browser notifications", "Сповіщення браузера працюють на комп'ютері. На Android Chrome вони можуть не з'являтись (браузер вимагає встановлений застосунок), тут я не перевіряв. Вібрація працює на Android, на iPhone ні.": "Browser notifications work on desktop. On Android Chrome they may not appear (needs an installed app); not verified. Vibration works on Android, not on iPhone.", "Вигляд": "Display", "Графік на картці": "Chart on card", "Показувати": "Show", "Сховати": "Hide", "Свічок на графіку": "Candles on chart", "Бал: A від 12, B від 9. Правила: 13 пунктів стратегії + BTC для крипти. Бектесту немає, пороги стартові. Календар новин не перевіряється: перед FOMC / NFP / CPI не входь. Автооновлення працює, поки сторінка відкрита.": "Score: A from 12, B from 9. Rules: 13 strategy points + BTC for crypto. Not backtested, thresholds are a starting point. News calendar is not checked: don't enter before FOMC / NFP / CPI. Auto-refresh works while the page is open.", "Скинути налаштування": "Reset settings", "Сетапи": "Setups", "Радар": "Radar", "Налаштування": "Settings","Статистика":"Stats","Вхід лише коли всі критичні правила ✓":"Enter only when all critical rules ✓","Так (рекомендовано)":"Yes (recommended)","Ні, показувати й з ✗ у критичних":"No, show with ✗ in critical too","Спільна історія (GitHub)":"Shared history (GitHub)","Ключ GitHub (fine-grained token, доступ Contents: Read and write лише до mysakmarco/stats)":"GitHub token (fine-grained, Contents: Read and write, only mysakmarco/stats)","Ключ зберігається тільки в цьому браузері. Вводь його лише на своїх пристроях.":"The token is stored only in this browser. Enter it only on your own devices.","Синхронізувати зараз":"Sync now","Стерти ключ у полі":"Clear token field","Журнал угод зберігається в репозиторії mysakmarco/stats (гілка screener-data, файл screener/journal.json) і однаковий на всіх пристроях. Без ключа пристрій лише читає історію. З ключем він ще й дописує нові угоди. Репозиторій публічний, тому історію угод може побачити будь-хто, хто знайде файл.":"The trade journal is stored in the mysakmarco/stats repo (branch screener-data, file screener/journal.json) and is the same on every device. Without a token a device only reads it; with a token it also adds new trades. The repo is public, so anyone who finds the file can see the trade history.","Угоди «чекати лімітку» (ціна ще не в зоні)":"«Wait for limit» trades (price not in zone yet)","На радарі (у сетапах лише готові до входу)":"On Radar (Setups shows only ready-to-enter)","У сетапах разом з готовими":"In Setups with ready ones","Огляд": "Overview","Історія угод": "Trade history","Оновити результати":"Update results","Експорт":"Export","Імпорт":"Import","Очистити":"Clear","Угоди записує бот на сервері GitHub кожні 5–15 хв, тому статистика однакова на всіх пристроях. Записується кожен сетап «Вхід зараз», який знайшов бот. Результат рахується по свічках: налився ліміт → що першим, SL чи TP. Без часткової фіксації на FTA і без комісій; якщо SL і TP в одній свічці, рахується стоп.":"Trades are logged by the server bot on GitHub every 5–15 min, so stats are identical on every device. Every «Enter now» setup the bot finds is logged. Results are computed from candles: limit filled → which came first, SL or TP. No partial take at FTA, no fees; if SL and TP are in the same candle it counts as a stop."};
 let LANG="uk";try{LANG=(JSON.parse(localStorage.getItem("smc-cfg")||"{}").lang)||"uk";}catch(e){}
 const L=(u,e)=>LANG==="en"?e:u,Lg=L;
 const MODES={intraday:["1d","4h","15m"],scalp:["4h","1h","5m"]};
@@ -373,7 +378,9 @@ function snapR(r,d,t,dec){
   r.entry=sn(r.entry,"nr");r.sl=sn(r.sl,far);r.tp=sn(r.tp,far);r.tp2=sn(r.tp2,far);r.fta=sn(r.fta,far);
   r.zoneBottom=sn(r.zoneBottom,"nr");r.zoneTop=sn(r.zoneTop,"nr");r.risk=Math.abs(r.entry-r.sl);}
 // чек-лист правил стратегії (System Trade: угода системна, коли все ✓)
-const RULE_ORDER=["trend","ctx","sweep","vol","bos","poi","conf","pd","ote","rr","fta","kz","day"];
+const RULE_ORDER=["trend","sweep","bos","poi","pd","rr","ctx","vol","conf","ote","fta","kz","day"];
+// критичні: без них входу немає; решта — додаткові (підсилюють сетап)
+const CRIT=new Set(["trend","sweep","bos","poi","pd","rr"]);
 const RULE_DEF=LANG==="en"?{trend:"Trend on working TF",ctx:"Higher TF agrees",sweep:"Liquidity sweep",vol:"Sweep volume ≥ 1.5x",
   bos:"Body BOS",poi:"POI: FVG or OB",conf:"OB + FVG confluence",pd:"Entry in Discount / Premium",ote:"OTE retracement 50–85%",
   rr:"RR ≥ 2 after rounding",fta:"No FTA closer than 1R",kz:"Kill zone",day:"Good day (Tue–Thu)",btc:"BTC same direction"}
@@ -516,7 +523,7 @@ const EX={
 
 // ------------------------------------------------------------- інтерфейс
 const $=id=>document.getElementById(id);
-const DEF={lang:"uk",exchange:"auto",mode:"intraday",top:30,lookback:80,symbols:"",dir:"all",sort:"score",min:9,minrules:0,minrr:2,btc:"warn",skips:"0",waits:"radar",ghtoken:"",
+const DEF={lang:"uk",exchange:"auto",mode:"intraday",top:30,lookback:80,symbols:"",dir:"all",sort:"score",min:9,minrules:0,critonly:"1",minrr:2,btc:"warn",skips:"0",waits:"radar",ghtoken:"",
   balance:1000,risk:1,loop:5,kzonly:"0",sound:"1",vibro:"1",notify:"0",chart:"1",bars:48};
 const MK={crypto:1,fx:1,metals:1,idx:1,stocks:0};
 let cfg=Object.assign({},DEF);
@@ -532,7 +539,7 @@ for(const k of Object.keys(DEF)){const el=$("s-"+k);el.value=cfg[k];
     save();if(k==="loop")schedule();if(k==="ghtoken")ghSync(true);
     if(k==="notify"&&el.value==="1"&&"Notification" in window&&Notification.permission!=="granted")
       Notification.requestPermission().then(p=>{if(p!=="granted")toast(L("Браузер не дав дозвіл на сповіщення","Browser denied notifications"));});
-    if(["dir","sort","min","minrules","minrr","btc","skips","waits","chart"].includes(k))render();});}
+    if(["dir","sort","min","minrules","critonly","minrr","btc","skips","waits","chart"].includes(k))render();});}
 if(LANG==="en"){document.documentElement.lang="en";const W=document.createTreeWalker($("app"),NodeFilter.SHOW_TEXT);let nd;
   while(nd=W.nextNode()){const t=nd.nodeValue.trim();if(t&&UI_EN[t])nd.nodeValue=nd.nodeValue.replace(t,UI_EN[t]);}}
 $("s-lang").addEventListener("change",()=>location.reload());
@@ -594,11 +601,17 @@ function ladder(s){if(s.entry==null)return "";
   <em style="left:0">${flip?"TP":"SL"}</em><em style="right:0">${flip?"SL":"TP"}</em>
   <b style="left:${e}%;background:var(--accent)"></b><b style="left:${p}%;height:10px;top:6px;width:6px;border-radius:3px;transform:translateX(-3px)"></b></div>`;}
 function meter(s){
-  const cls=s.nOk/s.nAll>=.8?"hi":s.nOk/s.nAll>=.6?"md":"lo";
-  return `<div class="rules"><div class="rnum ${cls}">${s.nOk}<i>/${s.nAll}</i><small>${L("правил","rules")}</small></div>
-  <div class="segs" aria-hidden="true">${s.checks.map(c=>`<span class="${c.ok===true?"y":c.ok===false?"n":""}" title="${esc(c.t)}"></span>`).join("")}</div>
+  const cOk=s.cOk??s.nOk,cAll=s.cAll??s.nAll,oOk=s.oOk??0,oAll=s.oAll??0;
+  const ocls=oAll&&oOk/oAll>=.7?"hi":oAll&&oOk/oAll>=.45?"md":"lo";
+  const seg=c=>`<span class="${c.ok===true?"y":c.ok===false?"n":""}" title="${esc(c.t)}"></span>`;
+  return `<div class="rules"><div class="rnum ${cOk===cAll?"hi":"lo"}">${cOk}<i>/${cAll}</i><small>${L("критичні","critical")}</small></div>
+  <div class="rnum ${ocls}">${oOk}<i>/${oAll}</i><small>${L("додаткові","extra")}</small></div>
+  <div class="segs" aria-hidden="true">${s.checks.filter(c=>CRIT.has(c.k)).map(seg).join("")}<b class="sep"></b>${s.checks.filter(c=>!CRIT.has(c.k)).map(seg).join("")}</div>
   ${s.tier&&s.tier!=="-"?`<span class="tier ${s.tier}" title="${L("клас сетапу","setup grade")}">${s.tier}</span>`:""}</div>`;}
-const ckList=s=>`<ul class="ck">${s.checks.map(c=>`<li class="${c.ok===true?"":c.ok===false?"n":"p"}">${esc(c.t)}${c.ok===null?L(" — ще не сформовано"," — not formed yet"):""}</li>`).join("")}</ul>`;
+const ckLi=c=>`<li class="${c.ok===true?"":c.ok===false?"n":"p"}">${esc(c.t)}${c.ok===null?L(" — ще не сформовано"," — not formed yet"):""}</li>`;
+const ckList=s=>{const cr=s.checks.filter(c=>CRIT.has(c.k)),op=s.checks.filter(c=>!CRIT.has(c.k));
+  return `<h4 class="ckh">${L("Критичні — без них входу немає","Critical — no entry without them")} (${cr.filter(c=>c.ok===true).length}/${cr.length})</h4><ul class="ck">${cr.map(ckLi).join("")}</ul>
+  <h4 class="ckh">${L("Додаткові — підсилюють сетап","Extra — strengthen the setup")} (${op.filter(c=>c.ok===true).length}/${op.length})</h4><ul class="ck">${op.map(ckLi).join("")}</ul>`;};
 const head=s=>`<div class="row"><div class="row"><span class="sym">${esc(nice(s.symbol))}</span><span class="dir">${s.dir}</span><span class="mk">${GNAME[s.group]||""} · ${esc(s.src||"")}</span></div><span class="pill ${s.state}">${ST[s.state]}</span></div>`;
 function card(s){
   const F=v=>PX(v,s.dec);
@@ -622,7 +635,7 @@ function render(){
   const dirOk=s=>cfg.dir==="all"||s.dir===cfg.dir,btcOk=s=>!(cfg.btc==="hide"&&s.btcBad);
   const dist=s=>s.entry!=null?Math.abs(s.price-s.entry)/s.price:1;
   const SORT={score:(x,y)=>y.score-x.score,rules:(x,y)=>y.nOk/y.nAll-x.nOk/x.nAll||y.score-x.score,rr:(x,y)=>y.rr-x.rr,dist:(x,y)=>dist(x)-dist(y)}[cfg.sort]||((x,y)=>y.score-x.score);
-  const pass=s=>s.score>=(+cfg.min||0)&&s.rr>=(+cfg.minrr||0)&&s.nOk>=(+cfg.minrules||0)&&dirOk(s)&&btcOk(s);
+  const pass=s=>(cfg.critonly!=="1"||s.cOk===s.cAll)&&s.score>=(+cfg.min||0)&&s.rr>=(+cfg.minrr||0)&&s.nOk>=(+cfg.minrules||0)&&dirOk(s)&&btcOk(s);
   const waitIn=cfg.waits==="setups";
   const acts=sigs.filter(s=>(s.state==="ENTER"||(waitIn&&s.state==="WAIT"))&&pass(s)).sort((x,y)=>x.state===y.state?SORT(x,y):x.state==="ENTER"?-1:1);
   const waits=waitIn?[]:sigs.filter(s=>s.state==="WAIT"&&pass(s)).sort(SORT);
@@ -710,7 +723,9 @@ async function scan(){
         const ok=(r.dir==="LONG"&&hb==="bull")||(r.dir==="SHORT"&&hb==="bear");r.btcBad=!ok&&hb!=="flat";
         r.checks.push({k:"btc",ok,t:hb==="flat"?L("BTC без тренду","BTC has no trend"):`BTC ${tfs[1].toUpperCase()} ${hb==="bull"?L("бичий","bullish"):L("ведмежий","bearish")}`+(ok?L(", в ту ж сторону",", same direction"):L(", проти угоди",", against the trade"))});
         if(r.btcBad&&cfg.btc==="warn")r.warns.unshift(L(`BTC ${tfs[1].toUpperCase()} проти ${r.dir}: альти зазвичай ідуть за BTC`,`BTC ${tfs[1].toUpperCase()} against ${r.dir}: alts usually follow BTC`));}
-      r.nAll=r.checks.length;r.nOk=r.checks.filter(c=>c.ok===true).length;}
+      r.nAll=r.checks.length;r.nOk=r.checks.filter(c=>c.ok===true).length;
+      const cr=r.checks.filter(c=>CRIT.has(c.k)),op=r.checks.filter(c=>!CRIT.has(c.k));
+      r.cAll=cr.length;r.cOk=cr.filter(c=>c.ok===true).length;r.oAll=op.length;r.oOk=op.filter(c=>c.ok===true).length;}
     last={sigs};const acts=render();
     const fresh=acts.filter(s=>!seen.has(s.id));fresh.forEach(s=>seen.add(s.id));
     if(fresh.length)notifyNew(fresh);
@@ -808,7 +823,7 @@ function jAdd(acts,ex,tfs,now){if(!jWriter())return;const have=new Set(J.map(x=>
   for(const s of acts){if(have.has(s.id))continue;n++;
     J.push({id:s.id,symbol:s.symbol,dir:s.dir,group:s.group,src:s.src,ex:exKey,tf:tfs[2],t0:Date.now(),dec:s.dec,
       entry:s.entry,sl:s.sl,tp:s.tp,rr:+s.rr.toFixed(2),nOk:s.nOk,nAll:s.nAll,tier:s.tier,score:s.score,
-      kz:[9,10,11,14,15,16].includes(now.hour),wd:now.wd,st:"wait",p0:s.price,u:Date.now(),ck:(s.checks||[]).map(c=>[c.ok===true?1:c.ok===false?0:-1,c.t])});}
+      kz:[9,10,11,14,15,16].includes(now.hour),wd:now.wd,st:"wait",p0:s.price,u:Date.now(),cOk:s.cOk,cAll:s.cAll,oOk:s.oOk,oAll:s.oAll,ck:(s.checks||[]).map(c=>[c.ok===true?1:c.ok===false?0:-1,c.t,CRIT.has(c.k)?1:0])});}
   if(n)jSave();}
 // прогін сетапу по свічках після сигналу
 // «якби вхід по ринку одразу по ціні сигналу»: що першим, SL чи TP
@@ -886,6 +901,8 @@ function renderStats(){
     <div class="tile"><small>${L("Сер. R","Avg R")}</small><b>${a.n?a.avg.toFixed(2):"–"}</b></div></div>
   ${equity(closed)}
   ${table(L("За підтвердженими правилами","By confirmed rules"),by(bin,["≥85%","70–84%","55–69%","<55%"]))}
+  ${table(L("За додатковими правилами","By extra rules"),(()=>{const E=J.filter(j=>j.oAll);const b=j=>{const p=j.oOk/j.oAll;return p>=.75?"≥75%":p>=.5?"50–74%":"<50%";};
+    return ["≥75%","50–74%","<50%"].map(k=>[L("додаткових ","extra ")+k,E.filter(j=>b(j)===k)]);})())}
   ${table(L("За класом","By grade"),by(j=>j.tier,["A","B","C"]))}
   ${(()=>{const M=J.filter(j=>j.mst).map(j=>({st:j.mst,r:j.mr,nOk:j.nOk,nAll:j.nAll,f:j.st==="win"||j.st==="loss"}));
     return M.length?table(L("Якби вхід по ринку з ціни сигналу (усі сетапи, і ті, що без входу)","If entered at market at signal price (all setups, incl. no fill)"),
@@ -910,7 +927,7 @@ function renderHist(){const el=$("hist-body");if(!el)return;
   <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">${rows.length?rows.slice(0,hN).map(j=>{const F=v=>PX(v,j.dec);
     const res=j.r!=null?(j.r>0?"+":"")+j.r.toFixed(1)+"R":"";
     const mres=j.st!=="win"&&j.st!=="loss"&&j.mst?`<small>${L("по ринку","market")} ${(j.mr>0?"+":"")+j.mr.toFixed(1)}R</small>`:"";
-    return `<details class="hx ${j.st}" data-id="${esc(j.id)}"><summary><div><b>${esc(nice(j.symbol))} ${j.dir}</b><small>${tmF(j.t0)} · ${j.nOk}/${j.nAll} ${L("правил","rules")} · ${j.tier}</small></div>
+    return `<details class="hx ${j.st}" data-id="${esc(j.id)}"><summary><div><b>${esc(nice(j.symbol))} ${j.dir}</b><small>${tmF(j.t0)} · ${j.cAll!=null?`${L("крит.","crit.")} ${j.cOk}/${j.cAll} · ${L("дод.","extra")} ${j.oOk}/${j.oAll}`:`${j.nOk}/${j.nAll} ${L("правил","rules")}`} · ${j.tier}</small></div>
       <div class="res" style="text-align:right"><b style="color:${j.st==="win"?"var(--long)":j.st==="loss"?"var(--short)":"inherit"}">${res}</b><small>${st[j.st]}</small>${mres}</div></summary>
       <div class="hd"><div class="hchart" data-id="${esc(j.id)}"><div class="note">${L("Завантажую графік…","Loading chart…")}</div></div>
       <div class="kv"><span>${L("Сигнал","Signal")}</span><b>${tmF(j.t0)}</b><span>${L("Ліміт налився","Filled")}</span><b>${tmF(j.tf1)}</b>
@@ -920,7 +937,10 @@ function renderHist(){const el=$("hist-body");if(!el)return;
         <span>${L("Ціна в момент сигналу","Price at signal")}</span><b>${j.p0!=null?F(j.p0):"–"}</b><span>${L("Якби по ринку","If market entry")}</span><b>${mk(j)}</b>
         <span>${L("Клас / бал","Grade / score")}</span><b>${j.tier} / ${j.score}</b><span>${L("ТФ / ринок","TF / market")}</span><b>${j.tf.toUpperCase()} · ${esc(GNAME[j.group]||"")}</b>
         <span>${L("День / сесія","Day / session")}</span><b>${wdN[j.wd]||"–"} · ${j.kz?"KZ":L("поза KZ","out KZ")}</b><span>${L("Біржа","Exchange")}</span><b>${esc(j.src||j.ex||"")}</b></div>
-      ${j.ck&&j.ck.length?`<h3>${L("Правила на момент сигналу","Rules at signal")} (${j.nOk}/${j.nAll})</h3><ul class="ck">${j.ck.map(c=>`<li class="${c[0]===1?"":c[0]===0?"n":"p"}">${esc(c[1])}</li>`).join("")}</ul>`:""}
+      ${j.ck&&j.ck.length?(()=>{const li=c=>`<li class="${c[0]===1?"":c[0]===0?"n":"p"}">${esc(c[1])}</li>`;
+        if(j.ck[0].length<3)return `<h3>${L("Правила на момент сигналу","Rules at signal")} (${j.nOk}/${j.nAll})</h3><ul class="ck">${j.ck.map(li).join("")}</ul>`;
+        const cr=j.ck.filter(c=>c[2]),op=j.ck.filter(c=>!c[2]);
+        return `<h3>${L("Правила на момент сигналу","Rules at signal")}</h3><h4 class="ckh">${L("Критичні","Critical")} (${cr.filter(c=>c[0]===1).length}/${cr.length})</h4><ul class="ck">${cr.map(li).join("")}</ul><h4 class="ckh">${L("Додаткові","Extra")} (${op.filter(c=>c[0]===1).length}/${op.length})</h4><ul class="ck">${op.map(li).join("")}</ul>`;})():""}
       </div></details>`;}).join(""):`<div class="empty">${L("Тут поки порожньо.","Nothing here yet.")}</div>`}</div>
   ${rows.length>hN?`<button class="btn2" id="h-more" type="button">${L("Показати ще","Show more")} (${rows.length-hN})</button>`:""}
   <div class="btns"><button class="btn2" id="h-csv" type="button">${L("Історія в CSV (Excel)","History as CSV (Excel)")}</button></div>`;}
