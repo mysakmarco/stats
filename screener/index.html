@@ -758,6 +758,14 @@ setInterval(()=>{if(!document.hidden)ghSync();},120000);
 async function ghSync(manual){
   if(ghBusy)return;ghBusy=true;
   try{for(let att=0;att<3;att++){
+    if(!ghTok()){// без ключа читаємо через raw: без ліміту 60 запитів/год
+      const rr=await fetch(`https://raw.githubusercontent.com/${GH.repo}/${GH.branch}/${GH.path}?t=${Date.now()}`,{cache:"no-store"});
+      if(!rr.ok&&rr.status!==404)throw new Error("GitHub HTTP "+rr.status);
+      let rem={cleared:0,trades:[]};
+      if(rr.ok){try{const o=JSON.parse(await rr.text());rem=Array.isArray(o)?{cleared:0,trades:o}:{cleared:+o.cleared||0,trades:o.trades||[]};}catch(e){}}
+      const cl=Math.max(jCleared,rem.cleared);if(cl!==jCleared){jCleared=cl;localStorage.setItem("smc-journal-cleared",String(cl));}
+      ghBad=false;J=jMerge(rem.trades,[],cl);try{localStorage.setItem("smc-journal",JSON.stringify(J));}catch(e){}renderStats();
+      ghAt=Date.now();ghShow(L(`Спільна статистика з GitHub · оновлено ${tmF(ghAt)} · угод ${J.length}. Угоди записує бот на сервері.`,`Shared stats from GitHub · updated ${tmF(ghAt)} · ${J.length} trades. Trades are logged by the server bot.`));botInfo();break;}
     let r=await ghReq("GET",`/contents/${GH.path}?ref=${GH.branch}&t=${Date.now()}`);
     let badTok=false;
     if(r.status===401){badTok=true;r=await ghReq("GET",`/contents/${GH.path}?ref=${GH.branch}&t=${Date.now()}`,null,true);}
