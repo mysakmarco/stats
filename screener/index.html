@@ -157,6 +157,9 @@ details.hx>summary b{font:600 13px var(--mono)}
   </header>
   <main>
     <section class="view act" id="v-setups">
+      <label>Режим
+        <select id="s-mode"><option value="intraday">Інтрадей: D1 / 4H / M15</option><option value="scalp">Скальп: 4H / 1H / M5</option></select>
+      </label>
       <button class="scan" id="scanBtn">Сканувати ринок</button>
       <div class="bar"><i id="prog"></i></div>
       <div class="status" id="status">Крипта, форекс, метали, індекси. Дані беруться з біржі напряму.</div>
@@ -187,9 +190,7 @@ details.hx>summary b{font:600 13px var(--mono)}
         </div>
       </div>
       <p class="note">Кожна монета сканується один раз: на першій вибраній біржі зі списку, де вона є. На картці видно біржу і де ще торгується монета. KuCoin, BingX і MEXC не дають браузеру брати свої дані, тому їх сканує лише бот на сервері (статистика). MetaTrader підключити сюди неможливо: у нього немає відкритого доступу до котирувань для сайту.</p>
-      <label>Режим
-        <select id="s-mode"><option value="intraday">Інтрадей: D1 / 4H / M15</option><option value="scalp">Скальп: 4H / 1H / M5</option></select>
-      </label>
+      
       <div class="lbl">Ринки
         <div class="mkts" id="s-markets">
           <button type="button" data-g="crypto">Крипта</button><button type="button" data-g="fx">Форекс</button><button type="button" data-g="metals">Метали</button><button type="button" data-g="idx">Індекси</button><button type="button" data-g="stocks">Акції</button>
@@ -621,7 +622,7 @@ document.querySelectorAll("#s-exchanges button").forEach(b=>{const x=b.dataset.x
 const seen=new Set();let timer=null,busy=false,lastBtc="";
 for(const k of Object.keys(DEF)){const el=$("s-"+k);el.value=cfg[k];
   el.addEventListener("change",()=>{cfg[k]=el.type==="number"?(+el.value||0):el.value;
-    save();if(k==="loop")schedule();if(k==="ghtoken")ghSync(true);
+    save();if(k==="loop")schedule();if(k==="mode"&&!busy)scan();if(k==="ghtoken")ghSync(true);
     if(k==="notify"&&el.value==="1"&&"Notification" in window&&Notification.permission!=="granted")
       Notification.requestPermission().then(p=>{if(p!=="granted")toast(L("Браузер не дав дозвіл на сповіщення","Browser denied notifications"));});
     if(["dir","sort","min","minrules","critonly","minrr","btc","skips","waits","chart"].includes(k))render();});}
