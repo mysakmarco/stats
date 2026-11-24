@@ -1,9 +1,9 @@
 {
- "at": "2026-11-24T04:52:58.596Z",
- "status": "Bitget · 06:52 · перевірено 47, без тренду 19, ринок закритий 1",
+ "at": "2026-11-24T11:52:28.076Z",
+ "status": "Bitget + OKX + Gate + HTX + MEXC · 13:52 · перевірено 96, без тренду 37, помилок 4",
  "ok": true,
- "exchange": "Bitget",
- "signals": 24,
+ "exchange": "Bitget + OKX + Gate + HTX + MEXC",
+ "signals": 32,
  "enterNow": 0,
  "trades": 0,
  "open": 0
