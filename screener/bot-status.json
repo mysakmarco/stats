@@ -1,10 +1,91 @@
 {
- "at": "2026-11-25T06:59:10.003Z",
- "status": "Bitget + OKX + Gate + HTX + KuCoin + BingX + MEXC + Hyperliquid + BloFin + WOO X · 08:59 · перевірено 149, без тренду 70",
+ "at": "2026-11-25T17:08:07.793Z",
+ "status": "Bitget + OKX + Gate + HTX + KuCoin + BingX + MEXC + Hyperliquid + BloFin + WOO X (не відповідає: Bybit, Binance) · 19:08 · перевірено 143, без тренду 46, помилок 4",
  "ok": true,
- "exchange": "Bitget + OKX + Gate + HTX + KuCoin + BingX + MEXC + Hyperliquid + BloFin + WOO X",
- "signals": 54,
+ "exchange": "Bitget + OKX + Gate + HTX + KuCoin + BingX + MEXC + Hyperliquid + BloFin + WOO X (не відповідає: Bybit, Binance)",
+ "signals": 64,
  "enterNow": 0,
+ "diag": {
+  "trad": {
+   "EURUSDUSDT": "bitget",
+   "GBPUSDUSDT": "bitget",
+   "USDJPYUSDT": "bitget",
+   "K:AUDUSD": "bitget",
+   "K:USDCAD": "bitget",
+   "K:USDCHF": "bitget",
+   "K:EURCHF": "bitget",
+   "XAUUSDT": "bitget",
+   "XAGUSDT": "bitget",
+   "XPTUSDT": "bitget",
+   "XPDUSDT": "bitget",
+   "COPPERUSDT": "bitget",
+   "G:NAS100_USDT": "bitget",
+   "G:GER40_USDT": "bitget",
+   "G:SPX500_USDT": "bitget",
+   "G:US30_USDT": "bitget",
+   "G:UK100_USDT": "bitget"
+  },
+  "fx": {
+   "bitget": [
+    "XAUUSDT",
+    "XAUTUSDT",
+    "USDJPYUSDT",
+    "EURUSDUSDT",
+    "GBPUSDUSDT",
+    "FOXAUSDT"
+   ],
+   "okx": [
+    "XAUUSDT"
+   ],
+   "gate": [
+    "XAUUSDT",
+    "XAUTUSDT",
+    "EURUSDUSDT",
+    "GBPUSDUSDT",
+    "FOXAUSDT"
+   ],
+   "htx": [
+    "XAUUSDT",
+    "XAUTUSDT",
+    "USDJPYUSDT",
+    "EURUSDUSDT",
+    "FOXAUSDT",
+    "GBPUSDUSDT"
+   ],
+   "kucoin": [
+    "XAUTUSDT"
+   ],
+   "bingx": [
+    "XAUTUSDT",
+    "NCFXUSD2JPYUSDT",
+    "NCFXEUR2JPYUSDT",
+    "NCCOXAUXPT2USDUSDT",
+    "NCFXGBP2JPYUSDT",
+    "NCFXAUD2USDUSDT",
+    "NCFXEUR2GBPUSDT",
+    "NCCOXAUEUR2USDUSDT",
+    "NCCOXAUJPY2USDUSDT",
+    "NCFXAUD2JPYUSDT",
+    "NCCOXAUZAR2USDUSDT",
+    "NCCOXAUSGD2USDUSDT"
+   ],
+   "mexc": [
+    "XAUUSDT",
+    "XAUTUSDT",
+    "GBPUSDT",
+    "EURUSDT",
+    "JPYUSDT"
+   ],
+   "hyperliquid": [],
+   "blofin": [
+    "XAUUSDT",
+    "XAUTUSDT"
+   ],
+   "woo": [
+    "XAUTUSDT"
+   ]
+  }
+ },
  "trades": 0,
  "open": 0
 }
