@@ -94,6 +94,7 @@ fs.writeFileSync(JPATH, ev("jText")(cl, J));
 fs.writeFileSync(SPATH, JSON.stringify({
   at: new Date().toISOString(), status: statusText, ok: !!last,
   exchange: (statusText.split(" · ")[0] || ""), signals: last ? last.sigs.length : 0, enterNow: shown,
+  diag: ev("DIAG"),
   trades: J.length, open: J.filter(j => j.st === "wait" || j.st === "open").length,
 }, null, 1));
 console.log(statusText);

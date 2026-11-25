@@ -760,7 +760,7 @@ function beep(){try{const A=new (window.AudioContext||window.webkitAudioContext)
   o.frequency.value=1100;o.connect(g);g.connect(A.destination);g.gain.setValueAtTime(.15,A.currentTime);o.start();o.stop(A.currentTime+.35);}catch(e){}}
 function status(t,err){$("status").textContent=t;$("status").classList.toggle("err",!!err);}
 async function pool(items,n,fn){let i=0;await Promise.all(Array.from({length:n},async()=>{while(i<items.length){const x=items[i++];await fn(x);}}));}
-const tickCache={};
+const tickCache={};var DIAG=null;
 async function loadTicks(ex){const T={};
   try{
     if(ex===EX.bybit){let cur="";for(let n=0;n<5;n++){
@@ -827,6 +827,7 @@ async function scan(){
             const also=s[1]===":"?[]:where(s).filter(k=>k!==xk).map(k=>EX[k].name);if(also.length)r.also=also;sigs.push(r);}}}
       catch(e){errs++;}
       done++;$("prog").style.width=Math.round(done/syms.length*100)+"%";status(L(`Перевіряю ${done} з ${syms.length}…`,`Checking ${done} of ${syms.length}…`));});
+    DIAG={trad:Object.fromEntries(syms.filter(x=>GROUP[x]).map(x=>[x,owner[x]])),fx:Object.fromEntries(XK.map(k=>[k,LST[k].filter(x=>/JPY|EURUSD|GBPUSD|XAU/.test(x)).slice(0,12)]))};
     if(errs===syms.length)throw new Error(L("жодна пара не завантажилась. Перевір список пар або мережу.","no pair loaded. Check the pair list or network."));
     for(const r of sigs){
       if(r.group==="crypto"&&cfg.btc!=="off"&&hb){

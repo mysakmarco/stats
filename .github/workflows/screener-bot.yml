@@ -1,9 +1,12 @@
 name: screener-bot
 # Серверний скан скрінера: записує сетапи «Вхід зараз» і їх результати
 # у гілку screener-data (screener/journal.json), щоб статистика була однакова всюди.
+# GitHub запускає розклад нерегулярно (буває раз на кілька годин), тому один запуск
+# крутиться ~5 год 40 хв і сканує кожні 5 хв сам. Наступний запуск стає в чергу
+# і стартує, коли попередній закінчиться.
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "17 * * * *"
   workflow_dispatch:
   push:
     branches: [main]
@@ -16,7 +19,7 @@ concurrency:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 355
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,24 +33,36 @@ jobs:
             git worktree add -B screener-data data HEAD
           fi
           mkdir -p data/screener
-      - name: Scan
-        run: node screener/bot.mjs data/screener/journal.json data/screener/bot-status.json
-      - name: Save
-        if: always()
-        run: |
           cd data
           git config user.name "screener-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add screener/journal.json screener/bot-status.json
-          git commit -q -m "bot: journal $(date -u +%H:%M)" || exit 0
-          for i in 1 2 3 4; do
-            git push -q origin HEAD:screener-data && exit 0
-            sleep $((i*3))
-            git fetch -q --depth 1 origin screener-data
-            git show FETCH_HEAD:screener/journal.json > /tmp/remote.json 2>/dev/null || echo '{}' > /tmp/remote.json
-            node ../screener/bot.mjs --merge screener/journal.json /tmp/remote.json
-            git reset -q --soft FETCH_HEAD
-            git add screener/journal.json screener/bot-status.json
-            git commit -q -m "bot: journal $(date -u +%H:%M)" || exit 0
+      - name: Scan loop
+        run: |
+          end=$(( $(date +%s) + 340*60 ))
+          while [ "$(date +%s)" -lt "$end" ]; do
+            start=$(date +%s)
+            # свіжий код скрінера з main (зміни підхоплюються без перезапуску)
+            git fetch -q --depth 1 origin main && git checkout -q FETCH_HEAD -- screener/ || true
+            # свіжий журнал (його міг змінити сайт з ключем)
+            (cd data && git fetch -q --depth 1 origin screener-data && git reset -q --hard FETCH_HEAD) || true
+            mkdir -p data/screener
+            timeout 14m node screener/bot.mjs data/screener/journal.json data/screener/bot-status.json || echo "scan failed"
+            (
+              cd data
+              git add screener/journal.json screener/bot-status.json
+              if git commit -q -m "bot: journal $(date -u +%H:%M)"; then
+                for i in 1 2 3 4; do
+                  git push -q origin HEAD:screener-data && break
+                  sleep $((i*3))
+                  git fetch -q --depth 1 origin screener-data
+                  git show FETCH_HEAD:screener/journal.json > /tmp/remote.json 2>/dev/null || echo '{}' > /tmp/remote.json
+                  node ../screener/bot.mjs --merge screener/journal.json /tmp/remote.json
+                  git reset -q --soft FETCH_HEAD
+                  git add screener/journal.json screener/bot-status.json
+                  git commit -q -m "bot: journal $(date -u +%H:%M)" || break
+                done
+              fi
+            )
+            left=$(( 300 - ($(date +%s) - start) ))
+            if [ "$left" -gt 0 ]; then sleep "$left"; fi
           done
-          exit 1
