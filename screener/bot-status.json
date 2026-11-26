@@ -1,9 +1,9 @@
 {
- "at": "2026-11-26T18:41:15.397Z",
- "status": "Bitget + OKX + Gate + HTX + KuCoin + BingX + MEXC + Hyperliquid + BloFin + WOO X (не відповідає: Bybit, Binance) · 20:41 · перевірено 128, без тренду 47, ринок закритий 1, помилок 5",
+ "at": "2026-11-26T18:46:14.987Z",
+ "status": "Bitget + OKX + Gate + HTX + KuCoin + BingX + MEXC + Hyperliquid + BloFin + WOO X (не відповідає: Bybit, Binance) · 20:46 · перевірено 128, без тренду 47, ринок закритий 1, помилок 5",
  "ok": true,
  "exchange": "Bitget + OKX + Gate + HTX + KuCoin + BingX + MEXC + Hyperliquid + BloFin + WOO X (не відповідає: Bybit, Binance)",
- "signals": 53,
+ "signals": 54,
  "enterNow": 0,
  "diag": {
   "trad": {
