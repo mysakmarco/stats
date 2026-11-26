@@ -882,7 +882,8 @@ async function botInfo(){try{const r=await fetch(`https://raw.githubusercontent.
   ghShow(ghMsg+" "+L(`Бот: останній скан ${age} хв тому${b.ok?"":", помилка"} (${b.status}).`,`Bot: last scan ${age} min ago${b.ok?"":", error"} (${b.status}).`),!b.ok);}catch(e){}}
 setInterval(()=>{if(!document.hidden)ghSync();},120000);
 async function ghSync(manual){
-  if(ghBusy)return;ghBusy=true;
+  // бот пише журнал через git у workflow; якщо він тут прочитає старий файл з GitHub, то затре щойно додані угоди
+  if(window.BOT||ghBusy)return;ghBusy=true;
   try{for(let att=0;att<3;att++){
     if(!ghTok()){// без ключа читаємо через raw: без ліміту 60 запитів/год
       const rr=await fetch(`https://raw.githubusercontent.com/${GH.repo}/${GH.branch}/${GH.path}?t=${Date.now()}`,{cache:"no-store"});

@@ -43,9 +43,9 @@ store.set("smc-cfg", JSON.stringify(Object.assign({loop: 0, sound: "0", vibro: "
 store.set("smc-journal", JSON.stringify(prev.trades));
 store.set("smc-journal-cleared", String(prev.cleared));
 
-// GitHub API з бота не чіпаємо: журнал пишемо через git у workflow
+// GitHub (API і raw) з бота не чіпаємо: журнал пишемо через git у workflow
 const realFetch = globalThis.fetch;
-const fetchW = (url, opt) => (String(url).includes("api.github.com")
+const fetchW = (url, opt) => (/api\.github\.com|raw\.githubusercontent\.com/.test(String(url))
   ? Promise.resolve(new Response("{}", {status: 503}))
   : realFetch(url, opt));
 
