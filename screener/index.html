@@ -167,6 +167,8 @@ nav{padding-bottom:env(safe-area-inset-bottom)}
 .appbox{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13.5px;display:flex;flex-direction:column;gap:8px}
 .appbox .scan{margin:0}
 .btns .btn2.on{background:var(--accent);border-color:var(--accent);color:#10151f}
+.kcp{border-radius:6px;padding:1px 4px;margin:-1px -4px;border:1px dashed var(--line2)}
+.arow .grid{margin-top:2px}.arow .row small{flex:1}
 .dupt{font:600 10.5px var(--sans);color:var(--mute);border:1px solid var(--line);border-radius:6px;padding:1px 5px;margin-left:4px}
 
 /* ===== вигляд v2: нічний торговий стіл ===== */
@@ -1047,8 +1049,23 @@ function renderActive(){const el=$("active");if(!el)return;const now=Date.now();
   const rows=J.filter(j=>(j.st==="wait"||j.st==="open")&&now-j.t0<3*864e5&&!shownIds.has(j.id)&&!dupOf(j,J)).sort((a,b)=>b.t0-a.t0);
   if(!rows.length){el.innerHTML="";return;}
   el.innerHTML=`<div class="subh" style="margin-top:12px">${L("Сигнали бота в роботі","Bot signals in progress")}</div><div class="acts">`+rows.map(j=>{const F=v=>PX(v,j.dec),[c,t]=lifeLabel(j);
-    return `<div class="arow ${j.dir}"><div class="t"><b>${esc(nice(j.symbol))} ${j.dir}</b>${mineBtn(j.id)}</div><div class="life ${c}">${esc(t)}</div>
-    <small>${L("Сигнал","Signal")} ${hm(j.t0)} · ${L("вхід","entry")} ${F(j.entry)} · SL ${F(j.sl)} · TP ${F(j.tp)} · RR ${(+j.rr).toFixed(1)} · ${j.tier}</small></div>`;}).join("")+`</div>`;}
+    const cell=(lab,v)=>`<div class="cell cp" tabindex="0" data-v="${F(v)}"><small>${lab}</small><b>${F(v)}</b></div>`;
+    const txt=`${nice(j.symbol)} ${j.dir}\n${L("Вхід","Entry")} ${F(j.entry)}\nSL ${F(j.sl)}\nTP ${F(j.tp)}`;
+    return `<div class="arow ${j.dir}"><div class="t"><b>${esc(nice(j.symbol))} <span class="dir">${j.dir}</span></b>${mineBtn(j.id)}</div><div class="life ${c}">${esc(t)}</div>
+    <div class="grid">${cell(L("Вхід","Entry"),j.entry)}${cell(L("Стоп","Stop"),j.sl)}${cell(L("Тейк","Take"),j.tp)}</div>
+    <div class="achart" data-id="${esc(j.id)}">${aC[j.id]?aC[j.id][2]:`<div class="note">${L("Завантажую графік…","Loading chart…")}</div>`}</div>
+    <div class="row"><small>${L("Сигнал","Signal")} ${hm(j.t0)} · RR ${(+j.rr).toFixed(1)} · ${L("клас","grade")} ${j.tier}${j.lp!=null?` · ${L("ціна","price")} ${F(j.lp)}`:""}</small><button class="copy" data-t="${esc(txt)}">${L("Копіювати все","Copy all")}</button></div></div>`;}).join("")+`</div>`;
+  el.querySelectorAll(".achart").forEach(box=>{const j=J.find(x=>x.id===box.dataset.id);if(j)activeChart(j,box);});}
+// графік для угоди в роботі: свічки від ~30 свічок до сигналу до зараз, кеш 2 хв
+const aC={};
+async function activeChart(j,box){if(window.BOT)return;const k=j.id,now=Date.now();if(aC[k]&&now-aC[k][0]<12e4){box.innerHTML=aC[k][2];return;}
+  if(aC[k]&&aC[k][1])return;aC[k]=aC[k]||[0,0,""];aC[k][1]=1;
+  try{const tfm=TFMS[j.tf],start=j.t0-30*tfm,need=Math.min(1000,Math.ceil((now-start)/tfm)+2);
+    const cs=clean(await klAny(EX[j.ex]||EX.bybit,j.symbol,j.tf,need));let w=cs.filter(c=>c[0]>=start);if(w.length>160)w=w.slice(-160);
+    const marks=[{t:j.t0,l:L("сигнал","signal"),c:"var(--mute)",y:11}];if(j.tf1)marks.push({t:Math.max(j.tf1,j.t0-tfm),l:L("вхід","fill"),c:"var(--accent)",y:23});
+    const h=chart({symbol:j.symbol,dec:j.dec,candles:w,entry:j.entry,sl:j.sl,tp:j.tp,price:w.length?w[w.length-1][4]:null,force:1,marks,tfm})||"";
+    aC[k]=[Date.now(),0,h];box.innerHTML=h||`<div class="note">${L("Мало свічок для графіка.","Not enough candles.")}</div>`;}
+  catch(e){aC[k]=[0,0,""];box.innerHTML=`<div class="note">${L("Графік не завантажився: ","Chart failed: ")}${esc(e.message)}</div>`;}}
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-mine]");if(!b)return;e.preventDefault();e.stopPropagation();
   const id=b.dataset.mine;setMine(id,!isMineId(id));},true);
 const RANK={wait:0,open:1};
@@ -1273,7 +1290,7 @@ function renderHist(){const el=$("hist-body");if(!el)return;
       <div class="row" style="justify-content:flex-end">${mineBtn(j.id)}</div><div class="hchart" data-id="${esc(j.id)}"><div class="note">${L("Завантажую графік…","Loading chart…")}</div></div>
       <div class="kv"><span>${L("Сигнал","Signal")}</span><b>${tmF(j.t0)}</b><span>${L("Ліміт налився","Filled")}</span><b>${j.tf1?tmF(Math.max(j.tf1,j.t0))+(j.tf1<j.t0?L(" (свічка "," (candle ")+hm(j.tf1)+")":""):"–"}</b>
         <span>${L("Закриття","Closed")}</span><b>${j.st==="win"||j.st==="loss"?tmF(j.t1):"–"}</b><span>${L("В позиції","Time in trade")}</span><b>${j.tf1&&(j.st==="win"||j.st==="loss")?durF(j.t1-j.tf1+TFMS[j.tf]):j.st==="open"?durF(Date.now()-j.tf1):"–"}</b>
-        <span>${L("Вхід","Entry")}</span><b>${F(j.entry)}</b><span>SL</span><b>${F(j.sl)}</b><span>TP</span><b>${F(j.tp)}</b><span>${L("Вихід","Exit")}</span><b>${j.px1!=null?F(j.px1):"–"}</b>
+        <span>${L("Вхід","Entry")}</span><b class="cp kcp" tabindex="0" data-v="${F(j.entry)}">${F(j.entry)}</b><span>SL</span><b class="cp kcp" tabindex="0" data-v="${F(j.sl)}">${F(j.sl)}</b><span>TP</span><b class="cp kcp" tabindex="0" data-v="${F(j.tp)}">${F(j.tp)}</b><span>${L("Вихід","Exit")}</span><b>${j.px1!=null?F(j.px1):"–"}</b>
         <span>RR</span><b>${j.rr}</b><span>${L("Результат","Result")}</span><b>${res||"–"}</b>
         <span>${L("Ціна в момент сигналу","Price at signal")}</span><b>${j.p0!=null?F(j.p0):"–"}</b><span>${L("Якби по ринку","If market entry")}</span><b>${mk(j)}</b>
         ${j.win?`<span>${L("Таймер на вхід","Entry timer")}</span><b>${L("до","until")} ${tmF(winEnd(j))}</b>`:""}${j.alt?`<span>${L("Якби тримали 12 год","If kept 12 h")}</span><b>${st[j.alt.st]||j.alt.st}${j.alt.r!=null?` ${(j.alt.r>0?"+":"")+j.alt.r.toFixed(1)}R`:""}</b>`:""}
