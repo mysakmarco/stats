@@ -5,6 +5,8 @@ import fs from "node:fs";
 import vm from "node:vm";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
+import crypto from "node:crypto";
+import {loadKey, openSub, send} from "./push.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const MERGE = process.argv[2] === "--merge";   // node bot.mjs --merge ours.json theirs.json
@@ -86,6 +88,72 @@ await sleep(500);
 await ev("updJournal()");
 
 const J = ev("J"), cl = ev("jCleared");
+
+// ---- push-сповіщення на телефони (підписки: screener/subs.json у гілці screener-data, зашифровані)
+let prevStatus = {};
+try { prevStatus = JSON.parse(fs.readFileSync(SPATH, "utf8")); } catch (e) {}
+let push = null;
+try { push = await pushAll(prevStatus.push || {}); } catch (e) { push = {err: String(e && e.message || e)}; }
+
+async function pushAll(pp) {
+  const now = Date.now();
+  const info = {at: new Date(now).toISOString(), subs: 0, sent: 0, fail: 0, err: "",
+    notified: (pp.notified || []).slice(-400), tested: Object.assign({}, pp.tested), dead: Object.assign({}, pp.dead),
+    seen: Object.assign({}, pp.seen), last: pp.last || null};
+  const phase = ev("phase"), dupOf = ev("dupOf"), winEnd = ev("winEnd"), nice = ev("nice"), PX = ev("PX"), rrAt = ev("rrAt");
+  // нові сетапи, які ще можна торгувати (ліміт ще стоїть або по ринку ще RR ≥ 2), не дублікати
+  const done = new Set(info.notified);
+  const fresh = J.filter(j => !done.has(j.id) && j.t0 > cl && now - j.t0 < 45 * 60000 && !dupOf(j, J) && ["go", "mkt"].includes(phase(j, now)));
+  fresh.forEach(j => info.notified.push(j.id));
+  const KEY = process.env.SCREENER_PUSH_KEY || "";
+  if (!KEY) { info.err = "no SCREENER_PUSH_KEY secret"; return info; }
+  const key = loadKey(KEY);
+  let subs = [];
+  try { subs = JSON.parse(fs.readFileSync(path.join(path.dirname(JPATH), "subs.json"), "utf8")).subs || []; } catch (e) {}
+  info.subs = subs.length;
+  const ids = new Set(subs.map(x => x.id));
+  for (const m of [info.tested, info.dead, info.seen]) for (const k of Object.keys(m)) if (!ids.has(k)) delete m[k];
+  const hh = t => { try { return new Intl.DateTimeFormat("uk-UA", {timeZone: "Europe/Kyiv", hour: "2-digit", minute: "2-digit", hour12: false}).format(new Date(t)); }
+    catch (e) { const d = new Date(t + 2 * 3600e3); return String(d.getUTCHours()).padStart(2, "0") + ":" + String(d.getUTCMinutes()).padStart(2, "0"); } };
+  const topic = id => crypto.createHash("sha256").update(id).digest("base64url").slice(0, 22);
+  const one = (j, en) => {
+    const F = v => PX(v, j.dec), end = winEnd(j), ph = phase(j, now), em = j.dir === "LONG" ? "🟢" : "🔴";
+    const title = `${em} ${nice(j.symbol)} ${j.dir} · ${en ? "enter now" : "вхід зараз"}`;
+    let body = `${en ? "Entry" : "Вхід"} ${F(j.entry)} · SL ${F(j.sl)} · TP ${F(j.tp)} · RR ${(+j.rr).toFixed(1)}\n`;
+    body += ph === "mkt"
+      ? (en ? `Limit already filled: market entry still OK until ${hh(end)} (RR ${rrAt(j, j.lp).toFixed(1)} from price)` : `Ліміт уже налився: по ринку ще можна до ${hh(end)} (RR ${rrAt(j, j.lp).toFixed(1)} від ціни)`)
+      : (en ? `Valid until ${hh(end)}` : `Діє до ${hh(end)}`);
+    body += ` · ${en ? "grade" : "клас"} ${j.tier}${j.src ? " · " + j.src : ""}`;
+    return {title, body, tag: j.id, url: "./", ttl: Math.max(120, Math.round((end - now) / 1000))};
+  };
+  for (const rec of subs) {
+    if (info.dead[rec.id] && info.dead[rec.id] > (rec.at || 0)) continue;   // ще не перепідписався
+    let o;
+    try { o = openSub(key, rec); } catch (e) { info.fail++; continue; }
+    const en = o.lang === "en", pr = o.prefs || {};
+    const msgs = [];
+    if (rec.test && rec.test > (info.tested[rec.id] || 0)) {
+      info.tested[rec.id] = rec.test;
+      msgs.push({title: en ? "✅ Test from the bot" : "✅ Тест від бота",
+        body: en ? "Notifications reach this device. New setups will arrive like this." : "Сповіщення на цей пристрій доходять. Нові сетапи приходитимуть так само.",
+        tag: "test", url: "./", ttl: 3600});
+    }
+    const mine = fresh.filter(j => (pr.dir === "LONG" || pr.dir === "SHORT" ? j.dir === pr.dir : true) && (pr.tier === "A" ? j.tier === "A" : true));
+    if (mine.length > 3) {
+      const end = Math.min(...mine.map(j => winEnd(j)));
+      msgs.push({title: en ? `🟢 ${mine.length} new setups` : `🟢 Нових сетапів: ${mine.length}`,
+        body: mine.map(j => `${nice(j.symbol)} ${j.dir} · RR ${(+j.rr).toFixed(1)} · ${j.tier}`).join("\n"),
+        tag: "many-" + now, url: "./", ttl: Math.max(120, Math.round((end - now) / 1000))});
+    } else mine.forEach(j => msgs.push(one(j, en)));
+    for (const m of msgs) {
+      let st = 0;
+      try { st = await send(key, o.sub, m, {ttl: m.ttl, topic: topic(m.tag), fetchFn: realFetch}); } catch (e) { st = 0; }
+      if (st >= 200 && st < 300) { info.sent++; info.seen[rec.id] = now; info.last = now; }
+      else { info.fail++; if (st === 404 || st === 410) { info.dead[rec.id] = now; break; } }
+    }
+  }
+  return info;
+}
 const statusText = els.status?.textContent || "";
 const last = ev("last");
 const shown = last ? last.sigs.filter(s => s.state === "ENTER").length : 0;
@@ -94,9 +162,10 @@ fs.writeFileSync(JPATH, ev("jText")(cl, J));
 fs.writeFileSync(SPATH, JSON.stringify({
   at: new Date().toISOString(), status: statusText, ok: !!last,
   exchange: (statusText.split(" · ")[0] || ""), signals: last ? last.sigs.length : 0, enterNow: shown,
-  diag: ev("DIAG"),
+  diag: ev("DIAG"), push,
   trades: J.length, open: J.filter(j => j.st === "wait" || j.st === "open").length,
 }, null, 1));
 console.log(statusText);
 console.log(`journal: ${J.length} trades (було ${prev.trades.length})`);
+if (push) console.log(`push: subs ${push.subs || 0}, sent ${push.sent || 0}, fail ${push.fail || 0}${push.err ? ", " + push.err : ""}`);
 if (!last) process.exitCode = 2;

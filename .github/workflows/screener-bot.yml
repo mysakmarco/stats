@@ -3,7 +3,9 @@ name: screener-bot
 # у гілку screener-data (screener/journal.json), щоб статистика була однакова всюди.
 # GitHub запускає розклад нерегулярно (буває раз на кілька годин), тому один запуск
 # крутиться ~5 год 40 хв і сканує кожні 5 хв сам. Наступний запуск стає в чергу
-# і стартує, коли попередній закінчиться.
+# і стартує, коли попередній закінчиться. Якщо цей файл змінили в main, запущений цикл
+# сам завершується, щоб новий запуск (з новими налаштуваннями і секретами) стартував одразу.
+# Push-сповіщення: секрет SCREENER_PUSH_KEY (Settings → Secrets and variables → Actions).
 on:
   schedule:
     - cron: "17 * * * *"
@@ -37,12 +39,18 @@ jobs:
           git config user.name "screener-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Scan loop
+        env:
+          SCREENER_PUSH_KEY: ${{ secrets.SCREENER_PUSH_KEY }}
         run: |
           end=$(( $(date +%s) + 340*60 ))
           while [ "$(date +%s)" -lt "$end" ]; do
             start=$(date +%s)
             # свіжий код скрінера з main (зміни підхоплюються без перезапуску)
             git fetch -q --depth 1 origin main && git checkout -q FETCH_HEAD -- screener/ || true
+            # змінився сам workflow: виходимо, новий запуск уже в черзі
+            if ! git diff --quiet HEAD FETCH_HEAD -- .github/workflows/screener-bot.yml 2>/dev/null; then
+              echo "workflow changed in main, handing over to the new run"; break
+            fi
             # свіжий журнал (його міг змінити сайт з ключем)
             (cd data && git fetch -q --depth 1 origin screener-data && git reset -q --hard FETCH_HEAD) || true
             mkdir -p data/screener
