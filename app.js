@@ -123,24 +123,29 @@ const fHM=t=>{const d=new Date(t);return `${pad(d.getUTCHours())}:${pad(d.getUTC
 const DEF={
   dateFrom:'2026-06-01', cutFrom:'2026-08-22 08:07:00', cutTo:'2026-08-22 08:43:59',
   exclude:'Test_Program,MITOUSDT,PTBUSDT,SGCUSDT',
-  good:21, k:3, m:0.5, top19:65, topMed:25, topCv:0.9, topNeg:12, bl19:60, blMed:19, blCv:1.4, blMin:-70, blNeg:20,
+  negT:0, g0T:0, good:21, g35T:35, g50T:50, k:3, m:0.5,
   minN:5, top:20, days:10, side:'all',
   spike:{Events:4,_other:1}
 };
 const SET_FIELDS=[
   ['dateFrom','Дані з дати','text'],['cutFrom','Вирізати шматок: від','text'],['cutTo','Вирізати шматок: до','text'],
   ['exclude','Виключені монети (через кому)','text'],
-  ['good','Поріг доброго відкату, % (нижче — луз)','number'],
+  ['negT','Колонка «мінус»: відкат менше, %','number'],
+  ['g0T','Колонка «≥»: відкат від, %','number'],
+  ['good','Колонка «добрі»: відкат від, % (також для E і Long/Short %)','number'],
+  ['g35T','Колонка «≥»: відкат від, % (друга)','number'],
+  ['g50T','Колонка «≥»: відкат від, % (третя)','number'],
   ['k','k (стоп / тейк)','number'],['m','m (збиток на недовідкаті)','number'],
-  ['top19','Топ: частка добрих не менше, %','number'],['topMed','Топ: медіана не менше, %','number'],['topCv','Топ: CV не більше','number'],['topNeg','Топ: мінусів не більше, %','number'],
-  ['bl19','Blacklist: частка добрих менше, %','number'],['blMed','Blacklist: медіана менше, %','number'],['blCv','Blacklist: CV більше','number'],['blMin','Blacklist: мінімум нижче, %','number'],['blNeg','Blacklist: мінусів не менше, %','number'],
 ];
+// підписи колонок з порогів
+const nf=x=>String(+x||0).replace('.',',');
+const lNeg=()=>'<'+nf(S.negT)+'%', lG0=()=>'≥'+nf(S.g0T)+'%', lGood=()=>'≥'+nf(S.good)+'%', lG35=()=>'≥'+nf(S.g35T)+'%', lG50=()=>'≥'+nf(S.g50T)+'%';
 let S=structuredClone(DEF);
 function loadSettings(){ try{ const s=VAULT.settings||null; if(s) return Object.assign(structuredClone(DEF),s,{spike:Object.assign({},DEF.spike,s.spike||{})}); }catch(e){} return structuredClone(DEF); }
 function saveSettings(){ VAULT.settings=S; persist(); }
 
 // ================= Стан =================
-let BOOK=null, FILE='', TAB=null, TABS=[], CACHE={}, sortKey='score', sortDir=-1;
+let BOOK=null, FILE='', TAB=null, TABS=[], CACHE={}, sortKey='n', sortDir=-1;
 const PERIODS=[[1,'1д'],[3,'3д'],[7,'7д'],[10,'10д'],[14,'14д'],[30,'30д'],[0,'Все']];
 const TOPS=[[0,'Всі'],[10,'10'],[20,'20'],[30,'30'],[50,'50']];
 const SIDES=[['all','Всі'],['Long','Long'],['Short','Short']];
@@ -210,22 +215,12 @@ function metrics(a){
   const med=n%2?v[(n-1)/2]:(v[n/2-1]+v[n/2])/2;
   const sd=n>1?Math.sqrt(v.reduce((s,x)=>s+(x-mean)**2,0)/(n-1)):0;
   const cv=n>1&&mean>0?sd/mean:null;
-  const G=+S.good||19; let g0=0,g19=0,g35=0,g50=0,neg=0; for(const x of v){ if(x>=0)g0++; if(x>=G)g19++; if(x>=35)g35++; if(x>=50)g50++; if(x<0)neg++; }
-  const mid=n-g19-neg;
+  const G=+S.good||0, NT=+S.negT||0, T0=+S.g0T||0, T35=+S.g35T||0, T50=+S.g50T||0;
+  let g0=0,g19=0,g35=0,g50=0,neg=0,gm=0; for(const x of v){ if(x>=T0)g0++; if(x>=G)g19++; if(x>=T35)g35++; if(x>=T50)g50++; if(x<NT)neg++; else if(x<G)gm++; }
+  const mid=gm;
   const e=(g19-S.m*mid-S.k*neg)/n;
-  const score=0.4*g19/n*100+0.3*g35/n*100+0.3*med-2*neg/n*100-20*(cv??9);
-  return {n,mean,med,cv,g0,g19,g35,g50,neg,mid,min:v[0],e,score};
+  return {n,mean,med,cv,g0,g19,g35,g50,neg,mid,min:v[0],e};
 }
-function status(m){
-  const a19=m.g19/m.n*100, ng=m.neg/m.n*100, cv=m.cv??9;
-  if(a19>=S.top19&&ng<=S.topNeg&&cv<=S.topCv&&m.med>=S.topMed){
-    const edge=a19<S.top19+3||ng>S.topNeg-2||cv>S.topCv-0.1||m.med<S.topMed+2;
-    return edge?'edge':'top';
-  }
-  if(a19<S.bl19||m.med<S.blMed||cv>S.blCv||m.min<S.blMin||ng>=S.blNeg) return 'bl';
-  return 'mid';
-}
-const STN={top:'топ',edge:'на межі',mid:'середня',bl:'blacklist'};
 const P=(k,n)=>`${Math.round(100*k/n)}% (${k})`;
 const p1=x=>x.toFixed(1).replace('.',',')+'%';
 const sg=x=>(x<0?'−':'+')+Math.abs(x).toFixed(1).replace('.',',')+'%';
@@ -264,10 +259,8 @@ function render(){
     const levs=[...new Set(es.map(e=>e.lev))].sort((a,b)=>(+a||1e9)-(+b||1e9));
     const xs=(CACHE[TAB].xcols||[]).map((c,j)=>medianOf(es.map(e=>e.x?e.x[j]:null)));
     const pn=es.map(netPct), pnl=pn.reduce((a,b)=>a+b,0);
-    rows.push({coin,pnl,pnla:pnl/es.length,liq:pn.filter((v,i)=>v<0&&es[i].sp*es[i].rb/100<v-1e-9).length,m,st:status(m),L:sd('Long'),S:sd('Short'),lev:levs.join(', '),xs});
+    rows.push({coin,pnl,pnla:pnl/es.length,liq:pn.filter((v,i)=>v<0&&es[i].sp*es[i].rb/100<v-1e-9).length,m,L:sd('Long'),S:sd('Short'),lev:levs.join(', '),xs});
   }
-  // ранг за score (від найкращої до найгіршої)
-  rows.sort((a,b)=>b.m.score-a.m.score); rows.forEach((r,i)=>r.rank=i+1);
 
   buildLevButtons(c.ev);
   if(document.activeElement!==document.getElementById('dslider')) syncSlider();
@@ -279,11 +272,12 @@ function render(){
     `<span class="note">Очистка: дані з ${esc(S.dateFrom)}; вирізано ${c.rmCut} подій (${esc(S.cutFrom)} — ${esc(S.cutTo)}); виключено ${c.rmEx} рядків монет (${esc(S.exclude)}); старіших за дату — ${c.rmOld}; нерозпізнаних — ${c.bad}.</span>`;
   // таблиця монет
   const q=R.q; let view=rows.filter(r=>!q||r.coin.toUpperCase().includes(q));
-  const keyf={rank:r=>r.rank,coin:r=>r.coin,n:r=>r.m.n,med:r=>r.m.med,cv:r=>r.m.cv??99,g0:r=>r.m.g0/r.m.n,g19:r=>r.m.g19/r.m.n,g35:r=>r.m.g35/r.m.n,g50:r=>r.m.g50/r.m.n,neg:r=>r.m.neg/r.m.n,min:r=>r.m.min,e:r=>r.m.e,score:r=>r.m.score,pnl:r=>r.pnl,pnla:r=>r.pnla,L:r=>(r.L?r.L.n:0)/r.m.n,S:r=>(r.S?r.S.n:0)/r.m.n,st:r=>({top:0,edge:1,mid:2,bl:3})[r.st]};
+  const keyf={coin:r=>r.coin,n:r=>r.m.n,med:r=>r.m.med,cv:r=>r.m.cv??99,g0:r=>r.m.g0/r.m.n,g19:r=>r.m.g19/r.m.n,g35:r=>r.m.g35/r.m.n,g50:r=>r.m.g50/r.m.n,neg:r=>r.m.neg/r.m.n,min:r=>r.m.min,e:r=>r.m.e,pnl:r=>r.pnl,pnla:r=>r.pnla,L:r=>(r.L?r.L.n:0)/r.m.n,S:r=>(r.S?r.S.n:0)/r.m.n};
   const XS=xSel(), XALL=(CACHE[TAB].xcols||[]);
   XS.forEach(c=>{ const j=XALL.indexOf(c); keyf['x'+j]=r=>r.xs&&r.xs[j]!=null?r.xs[j]:(sortDir<0?-Infinity:Infinity); });
-  const kf=keyf[sortKey]||keyf.score;
-  view.sort((a,b)=>{const x=kf(a),y=kf(b); return (x<y?-1:x>y?1:0)*sortDir || a.rank-b.rank;});
+  if(!keyf[sortKey]){sortKey='n';sortDir=-1;} const kf=keyf[sortKey];
+  view.sort((a,b)=>{const x=kf(a),y=kf(b); return (x<y?-1:x>y?1:0)*sortDir || (a.coin<b.coin?-1:1);});
+  view.forEach((r,i)=>r.rank=i+1);
   // кнопки «Топ N» лише ті, що менші за кількість монет у періоді; інакше — «Всі»
   const nAll=rows.length;
   const topN=(+S.top>0&&+S.top<nAll)?+S.top:0;
@@ -291,13 +285,11 @@ function render(){
   const shown=topN>0?view.slice(0,topN):view;
   document.getElementById('toptitle').textContent=`Топ-лист${topN?' — топ '+topN:''} (${shown.length} з ${rows.length} монет)`;
   // підсумок і списки рахуються по монетах, показаних у топ-листі
-  const white=shown.filter(r=>r.st==='top'), edge=shown.filter(r=>r.st==='edge'), black=shown.filter(r=>r.st==='bl');
   const selEv=shown.flatMap(r=>coinsAll.get(r.coin)||[]);
   const nSel=selEv.length, mSel=nSel?metrics(selEv.map(e=>e.rb)):null;
   const selLbl=nSel<n?' (у вибірці)':'';
   document.getElementById('cards').innerHTML=!nSel?'<div class="card"><div class="v">0</div><div class="l">подій за цими умовами</div></div>':[
-    [nSel,'подій'+selLbl],[shown.length,'монет'+selLbl],[p1(mSel.med),'медіана відкату'],[P(mSel.neg,nSel),'<0%'],[P(mSel.g19,nSel),'≥'+S.good+'%'],[sg2(mSel.e),'E (умовне)'],[(()=>{const t=selEv.reduce((a,e)=>a+netPct(e),0);return `<span class="${t<0?'neg':'pos'}">${sg2(t)}%</span>`;})(),'профіт Σ (по $100: $)'],
-    [white.length+' / '+edge.length+' / '+black.length,'топ / на межі / blacklist']
+    [nSel,'подій'+selLbl],[shown.length,'монет'+selLbl],[p1(mSel.med),'медіана відкату'],[P(mSel.neg,nSel),lNeg()],[P(mSel.g19,nSel),lGood()],[sg2(mSel.e),'E (умовне)'],[(()=>{const t=selEv.reduce((a,e)=>a+netPct(e),0);return `<span class="${t<0?'neg':'pos'}">${sg2(t)}%</span>`;})(),'профіт Σ (по $100: $)']
   ].map(([v,l])=>`<div class="card"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('')+
   (nSel<n?`<div class="card" style="opacity:.75"><div class="v">${n} / ${coinsAll.size}</div><div class="l">усього подій / монет за період</div></div>`:'');
   const sd=(x)=>x?`${Math.round(100*x.k/x.n)}% (${x.n})`:'—';
@@ -311,8 +303,7 @@ function render(){
     min:r=>`<td class="${r.m.min<0?'neg':'pos'}">${sg(r.m.min)}</td>`, e:r=>`<td class="${r.m.e<0?'neg':''}">${sg2(r.m.e)}</td>`,
     pnl:r=>`<td class="${r.pnl<0?'neg':'pos'}" title="сума чистих % по ${r.m.n} позиціях = $ при позиціях по $100${r.liq?'; ліквідацій: '+r.liq:''}">${sg2(r.pnl)}%</td>`,
     pnla:r=>`<td class="${r.pnla<0?'neg':'pos'}" title="середній чистий % на позицію">${sg2(r.pnla)}%</td>`,
-    L:r=>`<td title="${r.L?'≥'+S.good+'% на Long: '+sd(r.L):''}">${ls(r.L,r.m.n)}</td>`, S:r=>`<td title="${r.S?'≥'+S.good+'% на Short: '+sd(r.S):''}">${ls(r.S,r.m.n)}</td>`, lev:r=>`<td>${esc(r.lev)}</td>`,
-    st:r=>`<td class="l"><span class="st ${r.st}">${STN[r.st]}</span>${r.m.n<10?' <span class="muted" title="мала вибірка">мало</span>':''}</td>`
+    L:r=>`<td title="${r.L?'≥'+S.good+'% на Long: '+sd(r.L):''}">${ls(r.L,r.m.n)}</td>`, S:r=>`<td title="${r.S?'≥'+S.good+'% на Short: '+sd(r.S):''}">${ls(r.S,r.m.n)}</td>`, lev:r=>`<td>${esc(r.lev)}</td>`
   };
   XS.forEach(c=>{ const j=XALL.indexOf(c); cell['x'+j]=r=>{ const v=r.xs?r.xs[j]:null; return `<td class="${c.pct&&v<0?'neg':''}">${fx(v,c.pct)}</td>`; }; });
   const cols=MAIN.filter(([k,,,fixed])=>fixed||!hid.has(k)).concat(XS.map(c=>['x'+XALL.indexOf(c),c.label,'xm']));
@@ -320,20 +311,16 @@ function render(){
     `<thead><tr>${cols.map(([k,t,cl])=>`<th class="${cl||''} ${sortKey===k?'sorted':''}" data-k="${k}"${cl==='xm'?' title="медіана по подіях монети"':''}>${t}${sortKey===k?(sortDir<0?' ↓':' ↑'):''}</th>`).join('')}</tr></thead><tbody>`+
     shown.map(r=>`<tr class="click" data-c="${esc(r.coin)}">${cols.map(([k])=>cell[k](r)).join('')}</tr>`).join('')+'</tbody>';
   buildColPanel();
-  document.querySelectorAll('#coins th').forEach(th=>th.onclick=()=>{const k=th.dataset.k; if(k==='lev')return; if(sortKey===k) sortDir=-sortDir; else {sortKey=k; sortDir=(k==='coin'||k==='rank'||k==='cv'||k==='neg'||k==='st')?1:-1;} render();});
+  document.querySelectorAll('#coins th').forEach(th=>th.onclick=()=>{const k=th.dataset.k; if(k==='lev')return; if(k==='rank')return; if(sortKey===k) sortDir=-sortDir; else {sortKey=k; sortDir=(k==='coin'||k==='cv'||k==='neg')?1:-1;} render();});
   document.querySelectorAll('#coins tr.click').forEach(tr=>tr.onclick=()=>coinModal(tr.dataset.c));
-  const small=shown.filter(r=>r.m.n<10&&(r.st==='top'||r.st==='edge')).map(r=>short(r.coin));
-  document.getElementById('coinnote').innerHTML=`Монети з N &lt; ${minN} не показані: ${skC} монет, ${skE} подій. Клік по монеті — детальна статистика. Клік по заголовку — сортування.`+
-    (small.length?`<br><span class="warn">Мала вибірка (&lt;10 подій), місцю в топі довіряти мало: ${esc(small.join(', '))}.</span>`:'');
+  document.getElementById('coinnote').innerHTML=`Монети з N &lt; ${minN} не показані: ${skC} монет, ${skE} подій. Клік по монеті — детальна статистика. Клік по заголовку — сортування, # — номер рядка в поточному сортуванні.`;
   const tot=rows.reduce((s,r)=>s+r.m.n,0)+skE;
 
   // списки
   const L=(arr,us)=>arr.length?arr.map(r=>us?r.coin:short(r.coin)).join(','):'—';
-  document.getElementById('lists').innerHTML=[['Whitelist',white,'top'],['На межі',edge,'edge'],['Blacklist',black,'bl']].map(([t,a,cl],i)=>
-    `<div class="list"><div class="head"><span class="st ${cl}">${t} — ${a.length}</span><span><button data-l="${i}" data-u="1">Копіювати з USDT</button> <button data-l="${i}" data-u="0">без USDT</button></span></div><pre>${esc(L(a,true))}</pre></div>`).join('')+
-    `<div class="note" style="grid-column:1/-1">Правила: топ = ≥${S.good}% ≥ ${S.top19}%, медіана ≥ ${S.topMed}%, CV ≤ ${S.topCv}, мінусів ≤ ${S.topNeg}%. «На межі» — топ, але хоч один показник близько до порогу. Blacklist = ≥${S.good}% &lt; ${S.bl19}% або медіана &lt; ${S.blMed}% або CV &gt; ${S.blCv} або мінімум &lt; ${S.blMin}% або мінусів ≥ ${S.blNeg}%. Списки, як і картки вгорі, рахуються лише по монетах, показаних у топ-листі (з урахуванням «Топ» і пошуку).</div>`;
-  const LS=[white,edge,black];
-  document.querySelectorAll('#lists button').forEach(b=>b.onclick=()=>copy(L(LS[+b.dataset.l],b.dataset.u==='1')));
+  document.getElementById('lists').innerHTML=`<div class="list"><div class="head"><span>Монети в таблиці — ${shown.length}</span><span><button data-u="1">Копіювати з USDT</button> <button data-u="0">без USDT</button></span></div><pre>${esc(L(shown,true))}</pre></div>`+
+    `<div class="note" style="grid-column:1/-1">Список у тому ж порядку, що й таблиця (з урахуванням сортування, «Топ» і пошуку).</div>`;
+  document.querySelectorAll('#lists button').forEach(b=>b.onclick=()=>copy(L(shown,b.dataset.u==='1')));
 
   // ринок
   const mk=[]; let checks=[];
@@ -505,7 +492,7 @@ document.getElementById('tlcopy').onclick=()=>{
 };
 function tbl(title,first,groups){
   let i=0;
-  return `<div><h2>${title}</h2><div class="tw"><table><thead><tr><th>#</th><th class="l">${first}</th><th>N</th><th>Медіана</th><th>CV</th><th>&lt;0%</th><th>≥0%</th><th>≥${S.good}%</th><th>≥35%</th><th>≥50%</th><th>Мін.</th><th>E</th></tr></thead><tbody>`+
+  return `<div><h2>${title}</h2><div class="tw"><table><thead><tr><th>#</th><th class="l">${first}</th><th>N</th><th>Медіана</th><th>CV</th><th>${esc(lNeg())}</th><th>${lG0()}</th><th>${lGood()}</th><th>${lG35()}</th><th>${lG50()}</th><th>Мін.</th><th>E</th></tr></thead><tbody>`+
     groups.filter(g=>g[1].length).map(([nm,es])=>{const m=metrics(es.map(e=>e.rb)); i++;
       return `<tr><td>${i}</td><td class="l">${esc(nm)}</td><td>${m.n}</td><td>${p1(m.med)}</td><td>${cvs(m.cv)}</td><td class="${m.neg?'neg':''}">${P(m.neg,m.n)}</td><td>${P(m.g0,m.n)}</td><td>${P(m.g19,m.n)}</td><td>${P(m.g35,m.n)}</td><td>${P(m.g50,m.n)}</td><td class="${m.min<0?'neg':'pos'}">${sg(m.min)}</td><td class="${m.e<0?'neg':''}">${sg2(m.e)}</td></tr>`;}).join('')+'</tbody></table></div></div>';
 }
@@ -527,10 +514,10 @@ function coinModal(coin){
   const recent=CACHE[TAB].ev.filter(e=>e.coin===coin&&!(cf!=null&&ct!=null&&e.t>=cf&&e.t<=ct)).sort((a,b)=>b.t-a.t).slice(0,15);
   const XS=xSel(), XALL=(CACHE[TAB].xcols||[]);
   const xh=XS.map(c=>`<th>${esc(c.label)}</th>`).join('');
-  const evRows=a=>a.map(e=>`<tr><td class="l">${fDT(e.t)}</td><td class="l">${e.side}</td><td>${e.lev}x</td><td>${p1(e.sp)}</td><td class="${e.rb<0?'neg':e.rb>=S.good?'pos':''}">${p1(e.rb)}</td>${XS.map(c=>{const v=e.x?e.x[XALL.indexOf(c)]:null; return `<td>${fx(v,c.pct)}</td>`;}).join('')}</tr>`).join('');
+  const evRows=a=>a.map(e=>`<tr><td class="l">${fDT(e.t)}</td><td class="l">${e.side}</td><td>${e.lev}x</td><td>${p1(e.sp)}</td><td class="${e.rb<(+S.negT||0)?'neg':e.rb>=S.good?'pos':''}">${p1(e.rb)}</td>${XS.map(c=>{const v=e.x?e.x[XALL.indexOf(c)]:null; return `<td>${fx(v,c.pct)}</td>`;}).join('')}</tr>`).join('');
   document.getElementById('mbox').innerHTML=
     `<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="font-size:18px">${esc(coin)} · ${esc(TAB)} · спайки ${(smax>0?`${smin}–${smax}%`:`від ${smin}%`).replace(/\./g,',')} · ${days>0?days+' дн.':'весь період'}</h2><button id="mclose">Закрити</button></div>`+
-    `<div class="cards">${[[m.n,'подій'],[p1(m.med),'медіана'],[cvs(m.cv),'CV'],[P(m.neg,m.n),'<0%'],[P(m.g0,m.n),'≥0%'],[P(m.g19,m.n),'≥'+S.good+'%'],[P(m.g35,m.n),'≥35%'],[P(m.g50,m.n),'≥50%'],[sg(m.min),'мінімум'],[sg2(m.e),'E'],[STN[status(m)],'статус']].map(([v,l])=>`<div class="card"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('')}</div>`+
+    `<div class="cards">${[[m.n,'подій'],[p1(m.med),'медіана'],[cvs(m.cv),'CV'],[P(m.neg,m.n),lNeg()],[P(m.g0,m.n),lG0()],[P(m.g19,m.n),lGood()],[P(m.g35,m.n),lG35()],[P(m.g50,m.n),lG50()],[sg(m.min),'мінімум'],[sg2(m.e),'E']].map(([v,l])=>`<div class="card"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('')}</div>`+
     `<div class="grid2">${tbl('По сторонах','Зріз',g)}${tbl('За розміром спайку','Спайк',bg)}${tbl(monthly?'По місяцях':'По днях',monthly?'Місяць':'День',dg)}`+
     `<div><h2>Найгірші події</h2><div class="tw"><table><thead><tr><th class="l">Дата</th><th class="l">Сторона</th><th>Плече</th><th>Спайк</th><th>Відкат</th>${xh}</tr></thead><tbody>${evRows(worst)}</tbody></table></div>`+
     `<h2 style="margin-top:12px">Останні 15 подій <span class="muted" style="font-weight:400;font-size:12px">(з усього файлу, без фільтрів)</span></h2><div class="tw"><table><thead><tr><th class="l">Дата</th><th class="l">Сторона</th><th>Плече</th><th>Спайк</th><th>Відкат</th>${xh}</tr></thead><tbody>${evRows(recent)}</tbody></table></div></div></div>`+
@@ -541,7 +528,7 @@ function coinModal(coin){
   md.onclick=e=>{if(e.target===md) md.style.display='none';};
   document.getElementById('mcopy').onclick=()=>{
     const sd=s=>{const x=es.filter(e=>e.side===s);return x.length?`${Math.round(100*x.filter(e=>e.rb>=S.good).length/x.length)}% (${x.length})`:'—';};
-    copy(`| # | Монета | N | Медіана | CV | <0% | ≥0% | ≥${S.good}% | ≥35% | ≥50% | Мін. | E | Long | Short | Плече | Статус |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n| 1 | ${short(coin)} | ${m.n} | ${p1(m.med)} | ${cvs(m.cv)} | ${P(m.neg,m.n)} | ${P(m.g0,m.n)} | ${P(m.g19,m.n)} | ${P(m.g35,m.n)} | ${P(m.g50,m.n)} | ${sg(m.min)} | ${sg2(m.e)} | ${sd('Long')} | ${sd('Short')} | ${[...new Set(es.map(e=>e.lev))].join(', ')} | ${STN[status(m)]} |`);
+    copy(`| # | Монета | N | Медіана | CV | ${lNeg()} | ${lG0()} | ${lGood()} | ${lG35()} | ${lG50()} | Мін. | E | Long | Short | Плече |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n| 1 | ${short(coin)} | ${m.n} | ${p1(m.med)} | ${cvs(m.cv)} | ${P(m.neg,m.n)} | ${P(m.g0,m.n)} | ${P(m.g19,m.n)} | ${P(m.g35,m.n)} | ${P(m.g50,m.n)} | ${sg(m.min)} | ${sg2(m.e)} | ${sd('Long')} | ${sd('Short')} | ${[...new Set(es.map(e=>e.lev))].join(', ')} |`);
   };
 }
 
@@ -550,7 +537,7 @@ function coinModal(coin){
 function netPct(e){ const lev=parseFloat(String(e.lev).replace(',','.')); const v=e.sp*e.rb/100; if(v>=0) return v; return lev>0?Math.max(v,-100/lev):v; }
 function mainCols(){
   // [ключ, назва, клас, завжди видима]
-  return [['rank','#','',true],['coin','Монета','l',true],['lev','Плече'],['n','N'],['med','Медіана'],['cv','CV'],['neg','<0%'],['g0','≥0%'],['g19','≥'+S.good+'%'],['g35','≥35%'],['g50','≥50%'],['min','Мін.'],['e','E'],['pnl','Профіт Σ'],['pnla','Профіт сер.'],['L','Long %'],['S','Short %'],['st','Статус','l']];
+  return [['rank','#','',true],['coin','Монета','l',true],['lev','Плече'],['n','N'],['med','Медіана'],['cv','CV'],['neg',lNeg()],['g0',lG0()],['g19',lGood()],['g35',lG35()],['g50',lG50()],['min','Мін.'],['e','E'],['pnl','Профіт Σ'],['pnla','Профіт сер.'],['L','Long %'],['S','Short %']];
 }
 function buildColPanel(){
   const box=document.getElementById('colpanel'); if(!box||!CACHE[TAB]) return;
@@ -610,14 +597,14 @@ function syncControls(){
 }
 function buildSettings(){
   const box=document.getElementById('settings');
-  const GR=[['Дані',['dateFrom','cutFrom','cutTo','exclude']],['Оцінка',['good','k','m']],['Топ',['top19','topMed','topCv','topNeg']],['Blacklist',['bl19','blMed','blCv','blMin','blNeg']]];
+  const GR=[['Дані',['dateFrom','cutFrom','cutTo','exclude']],['Пороги колонок',['negT','g0T','good','g35T','g50T']],['E (умовне)',['k','m']]];
   const F=new Map(SET_FIELDS.map(f=>[f[0],f]));
-  const row=k=>{ const f=F.get(k); if(!f) return ''; const [,t,ty]=f; const lbl=t.replace(/^(Топ|Blacklist): /,'');
+  const row=k=>{ const f=F.get(k); if(!f) return ''; const [,t,ty]=f; const lbl=t;
     return `<tr><td>${esc(lbl)}</td><td class="v"><input data-k="${k}" type="${ty}" ${ty==='number'?'step="any"':''} value="${esc(S[k])}"></td></tr>`; };
   const used=new Set(GR.flatMap(g=>g[1]));
   const rest=SET_FIELDS.map(f=>f[0]).filter(k=>!used.has(k));
   box.innerHTML='<tbody>'+GR.map(([g,ks])=>`<tr class="g"><td colspan="2">${g}</td></tr>`+ks.map(row).join('')).join('')+(rest.length?'<tr class="g"><td colspan="2">Інше</td></tr>'+rest.map(row).join(''):'')+'</tbody>';
-  box.querySelectorAll('input').forEach(inp=>inp.onchange=()=>{ const k=inp.dataset.k; S[k]=inp.type==='number'?+inp.value:inp.value; saveSettings(); render(); });
+  box.querySelectorAll('input').forEach(inp=>inp.onchange=()=>{ const k=inp.dataset.k; S[k]=inp.type==='number'?+String(inp.value).replace(',','.'):inp.value; saveSettings(); render(); });
 }
 function buildTabs(){
   const nav=document.getElementById('tabs'); nav.innerHTML='';
