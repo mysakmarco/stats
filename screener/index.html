@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#10151f">
+<meta name="theme-color" content="#0d1322">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Скрінер">
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>SMC Скрінер</title>
@@ -166,6 +168,105 @@ nav{padding-bottom:env(safe-area-inset-bottom)}
 .appbox .scan{margin:0}
 .btns .btn2.on{background:var(--accent);border-color:var(--accent);color:#10151f}
 .dupt{font:600 10.5px var(--sans);color:var(--mute);border:1px solid var(--line);border-radius:6px;padding:1px 5px;margin-left:4px}
+
+/* ===== вигляд v2: нічний торговий стіл ===== */
+:root{
+  --bg:#0d1322; --panel:#141c2e; --panel2:#1b2539; --line:#25314a; --line2:#32405e;
+  --text:#edf1f8; --mute:#8b97b0; --accent:#f4b740; --long:#2fd08f; --short:#ff6576; --warn:#f4b740;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,Menlo,monospace;
+  --sans:"Onest","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  --r-lg:16px; --r-md:12px; --r-sm:8px;
+}
+body{background:#080c16;font:15px/1.5 var(--sans);-webkit-font-smoothing:antialiased;font-feature-settings:"tnum"}
+#app{background:radial-gradient(120% 60% at 50% -10%,#18233d 0%,var(--bg) 55%)}
+header{background:rgba(13,19,34,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);padding:calc(12px + env(safe-area-inset-top)) 16px 10px}
+h1{font:800 19px var(--sans);letter-spacing:-.2px;display:flex;align-items:center;gap:8px}
+h1 span{color:var(--mute);font-weight:600}
+h1::before{content:"";width:22px;height:22px;border-radius:7px;background:url(icons/icon-192.png) center/cover;box-shadow:0 0 0 1px var(--line2)}
+.clock{font:500 12.5px var(--mono)}
+.chip{font:600 12px var(--sans);padding:4px 10px;background:transparent;border-color:var(--line2)}
+.chip.on{color:#1a1204}
+main{padding:14px 14px 24px}
+.view{gap:12px}
+label,.lbl{font:500 13px var(--sans)}
+input,select{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r-md);font:500 15px var(--sans);transition:border-color .15s}
+input:focus,select:focus{border-color:var(--accent);outline:none}
+.scan{border-radius:var(--r-md);font:700 16px var(--sans);background:linear-gradient(180deg,#f7c457,#eaa92c);color:#1a1204;box-shadow:0 6px 18px -8px rgba(244,183,64,.7),inset 0 1px 0 rgba(255,255,255,.35)}
+.scan:active{transform:translateY(1px)}
+.bar{height:3px;background:var(--line)}
+.status{font-size:12.5px}
+/* картка сетапу — головний елемент */
+.card{background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,0) 40%),var(--panel);border:1px solid var(--line);border-left:1px solid var(--line);border-radius:var(--r-lg);padding:14px;gap:10px;position:relative;overflow:hidden}
+.card::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--mute)}
+.card.LONG::before{background:linear-gradient(90deg,var(--long),rgba(47,208,143,0))}
+.card.SHORT::before{background:linear-gradient(90deg,var(--short),rgba(255,101,118,0))}
+.card.LONG,.card.SHORT{border-left-color:var(--line)}
+.card.LONG{box-shadow:0 -24px 40px -34px rgba(47,208,143,.9) inset}
+.card.SHORT{box-shadow:0 -24px 40px -34px rgba(255,101,118,.9) inset}
+.sym{font:800 19px var(--sans);letter-spacing:-.3px}
+.dir{font:700 11.5px var(--sans);padding:3px 8px;border-radius:999px;letter-spacing:.2px}
+.mk{font:500 11.5px var(--sans);border:0;padding:0;color:var(--mute)}
+.mk i{font-style:normal;opacity:.75}
+.pill{font:700 11.5px var(--sans);text-transform:none;letter-spacing:0;padding:4px 10px}
+.pill.ENTER{background:var(--accent);color:#1a1204;box-shadow:0 0 0 3px rgba(244,183,64,.18)}
+.grid{gap:6px}
+.cell{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px}
+.cell small{font:500 11px var(--sans);text-transform:none;letter-spacing:0}
+.cell b{font:600 13.5px var(--mono)}
+.cp:hover,.cp:focus-visible{background:rgba(244,183,64,.08);border-color:rgba(244,183,64,.4)}
+.score{font:500 12px var(--sans)}
+.copy{border-radius:var(--r-sm);font:600 12px var(--sans);color:var(--text);border-color:var(--line2)}
+details summary{font:600 13px var(--sans)}
+h3{font:700 13px var(--sans);text-transform:none;letter-spacing:0;color:var(--text);margin-top:10px}
+ul{font-size:13.5px}
+.ladder{height:26px}
+.ladder .tr{top:11px;height:4px;opacity:.75}
+.ladder b{top:5px;height:16px;border-radius:1px}
+.ladder em{font:600 10.5px var(--mono)}
+.chart{background:#0f1626;border-radius:var(--r-md)}
+.rnum{font:700 21px var(--mono)}
+.rnum small{font:500 11px var(--sans);text-transform:none;letter-spacing:0}
+.segs span{height:7px;border-radius:4px;border:0;background:var(--line)}
+.segs span.n{background:rgba(255,101,118,.55)}
+.tier{font:800 14px var(--sans);border-radius:10px}
+.tier.A{color:#06231a}.tier.B{color:#1a1204}
+.life{border-radius:var(--r-sm);font:600 13px var(--sans)}
+.mine{border-radius:999px;font:600 12.5px var(--sans);padding:6px 12px;border-color:var(--line2)}
+.mine.on{color:#06231a}
+/* заголовки розділів без капсу */
+.subh{font:700 14px var(--sans);color:var(--text);text-transform:none;letter-spacing:0;margin:10px 0 -2px}
+.sec{font:700 15px var(--sans);color:var(--text);text-transform:none;letter-spacing:0;margin:18px 0 0;display:flex;align-items:center;gap:8px}
+.sec::before{content:"";width:6px;height:6px;border-radius:2px;background:var(--accent)}
+.note{font-size:12.5px}
+.empty{background:var(--panel);border:1px dashed var(--line2);border-radius:var(--r-lg);padding:26px 16px;color:var(--mute)}
+.btn2{border-radius:var(--r-md);font:600 14px var(--sans);border-color:var(--line2)}
+.btn2:active,.mine:active,.copy:active{transform:translateY(1px)}
+.mkts button{font:600 13px var(--sans);border-color:var(--line2);background:transparent}
+.mkts button.on{color:#1a1204}
+.appbox{border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(244,183,64,.07),rgba(244,183,64,0)),var(--panel);border-color:rgba(244,183,64,.3)}
+/* статистика */
+.stats{gap:8px}
+.tile{border-radius:var(--r-md);padding:9px 10px 8px;background:var(--panel)}
+.tile small{font:500 11px var(--sans);text-transform:none;letter-spacing:0}
+.tile b{font:700 18px var(--mono)}
+.tbl{border-radius:var(--r-md);border-collapse:separate;border-spacing:0}
+.tbl th{font:600 11px var(--sans);text-transform:none;letter-spacing:0}
+.tbl tr:last-child td{border-bottom:0}
+.hctl button{font:600 12.5px var(--sans);background:transparent;border-color:var(--line2)}
+details.hx{border-radius:var(--r-md);border-left-width:3px}
+details.hx>summary b,.arow .t b{font:700 14px var(--sans)}
+.kv b{font:600 12.5px var(--mono)}
+.arow{border-radius:var(--r-md);border-left-width:3px}
+.arow small{font:500 12px var(--sans)}
+#toast{border-radius:999px;font:700 14px var(--sans);color:#1a1204;box-shadow:0 10px 30px -10px rgba(0,0,0,.6)}
+/* нижня панель з іконками */
+nav{background:rgba(13,19,34,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:6px 8px calc(6px + env(safe-area-inset-bottom));gap:4px}
+nav button{border:0;border-radius:12px;padding:6px 2px 7px;display:flex;flex-direction:column;align-items:center;gap:3px;font:600 11.5px var(--sans);position:relative}
+nav button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav button.act{color:var(--accent);background:rgba(244,183,64,.1)}
+nav button em{position:absolute;top:2px;left:calc(50% + 6px);margin:0;min-width:17px;height:17px;padding:0 5px;border-radius:999px;background:var(--accent);color:#1a1204;font:700 10.5px var(--sans);line-height:17px;opacity:1}
+nav button em:empty{display:none}
+@media (prefers-reduced-motion:reduce){.scan:active,.btn2:active,.mine:active,.copy:active{transform:none}}
 </style>
 </head>
 <body>
@@ -318,10 +419,10 @@ nav{padding-bottom:env(safe-area-inset-bottom)}
     </section>
   </main>
   <nav>
-    <button data-v="setups" class="act">Сетапи<em id="n-setups"></em></button>
-    <button data-v="radar">Радар<em id="n-radar"></em></button>
-    <button data-v="stats">Статистика<em id="n-stats"></em></button>
-    <button data-v="settings">Налаштування</button>
+    <button data-v="setups" class="act"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>Сетапи<em id="n-setups"></em></button>
+    <button data-v="radar"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12l6-6"/></svg>Радар<em id="n-radar"></em></button>
+    <button data-v="stats"><svg viewBox="0 0 24 24"><path d="M3 17l5-5 4 3 8-8"/><path d="M15 7h5v5"/></svg>Статистика<em id="n-stats"></em></button>
+    <button data-v="settings"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Налаштування</button>
   </nav>
 </div>
 <div id="toast"></div>

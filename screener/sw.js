@@ -1,5 +1,5 @@
 // Service worker скрінера: робить сторінку застосунком і показує push-сповіщення від бота.
-const CACHE = "screener-v1";
+const CACHE = "screener-v2";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/badge-96.png"];
 
 self.addEventListener("install", e => {
