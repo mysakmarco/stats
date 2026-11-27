@@ -1,10 +1,10 @@
 {
- "at": "2026-11-27T21:59:13.993Z",
- "status": "Bitget + OKX + Gate + HTX + KuCoin + BingX + MEXC + Hyperliquid + BloFin + WOO X (не відповідає: Bybit, Binance) · 23:59 · перевірено 131, без тренду 40, ринок закритий 1, помилок 2",
+ "at": "2026-11-27T22:04:12.964Z",
+ "status": "Bitget + OKX + Gate + HTX + KuCoin + BingX + MEXC + Hyperliquid + BloFin + WOO X (не відповідає: Bybit, Binance) · 00:04 · перевірено 131, без тренду 40, ринок закритий 1, помилок 2 · нових сетапів: 1",
  "ok": true,
  "exchange": "Bitget + OKX + Gate + HTX + KuCoin + BingX + MEXC + Hyperliquid + BloFin + WOO X (не відповідає: Bybit, Binance)",
- "signals": 50,
- "enterNow": 0,
+ "signals": 45,
+ "enterNow": 1,
  "diag": {
   "trad": {
    "EURUSDUSDT": "bitget",
@@ -57,17 +57,7 @@
    ],
    "bingx": [
     "XAUTUSDT",
-    "NCFXUSD2JPYUSDT",
-    "NCFXEUR2JPYUSDT",
-    "NCFXEUR2GBPUSDT",
-    "NCFXAUD2USDUSDT",
-    "NCFXGBP2JPYUSDT",
-    "NCCOXAUJPY2USDUSDT",
-    "NCCOXAUSGD2USDUSDT",
-    "NCCOXAUAUD2USDUSDT",
-    "NCCOXAUXAG2USDUSDT",
-    "NCFXAUD2JPYUSDT",
-    "NCCOXAUCHF2USDUSDT"
+    "NCSKSOFTBANK2JPYUSDT"
    ],
    "mexc": [
     "XAUUSDT",
@@ -87,20 +77,21 @@
   }
  },
  "push": {
-  "at": "2026-11-27T21:59:13.992Z",
+  "at": "2026-11-27T22:04:12.963Z",
   "subs": 0,
   "sent": 0,
   "fail": 0,
   "err": "",
   "notified": [
    "LINKUSDT|LONG|1795800600000",
-   "NEARUSDT|LONG|1795800600000"
+   "NEARUSDT|LONG|1795800600000",
+   "BIGTIMEUSDT|LONG|1795812300000"
   ],
   "tested": {},
   "dead": {},
   "seen": {},
   "last": null
  },
- "trades": 9,
- "open": 1
+ "trades": 10,
+ "open": 2
 }
