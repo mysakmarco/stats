@@ -1,10 +1,10 @@
 {
- "at": "2026-11-28T06:30:02.296Z",
- "status": "Bitget + OKX + Gate + HTX + KuCoin + BingX + MEXC + Hyperliquid + BloFin + WOO X (не відповідає: Binance, Bybit) · 08:30 · перевірено 125, без тренду 36, ринок закритий 1, помилок 4",
+ "at": "2026-11-28T06:35:02.082Z",
+ "status": "Bitget + OKX + Gate + HTX + KuCoin + BingX + MEXC + Hyperliquid + BloFin + WOO X (не відповідає: Bybit, Binance) · 08:35 · перевірено 126, без тренду 37, ринок закритий 1, помилок 5 · нових сетапів: 1",
  "ok": true,
- "exchange": "Bitget + OKX + Gate + HTX + KuCoin + BingX + MEXC + Hyperliquid + BloFin + WOO X (не відповідає: Binance, Bybit)",
- "signals": 55,
- "enterNow": 0,
+ "exchange": "Bitget + OKX + Gate + HTX + KuCoin + BingX + MEXC + Hyperliquid + BloFin + WOO X (не відповідає: Bybit, Binance)",
+ "signals": 57,
+ "enterNow": 1,
  "diag": {
   "trad": {
    "EURUSDUSDT": "bitget",
@@ -29,8 +29,8 @@
    "bitget": [
     "XAUUSDT",
     "XAUTUSDT",
-    "EURUSDUSDT",
     "USDJPYUSDT",
+    "EURUSDUSDT",
     "FOXAUSDT",
     "GBPUSDUSDT"
    ],
@@ -77,7 +77,7 @@
   }
  },
  "push": {
-  "at": "2026-11-28T06:30:02.294Z",
+  "at": "2026-11-28T06:35:02.080Z",
   "subs": 0,
   "sent": 0,
   "fail": 0,
@@ -89,13 +89,14 @@
    "BIGTIMEUSDT|LONG|1795824000000",
    "BZUSDT|LONG|1795826700000",
    "CRVUSDT|LONG|1795791600000",
-   "K:AUDUSD|LONG|1795840200000"
+   "K:AUDUSD|LONG|1795840200000",
+   "NIGHTUSDT|LONG|1795750200000"
   ],
   "tested": {},
   "dead": {},
   "seen": {},
   "last": null
  },
- "trades": 15,
- "open": 2
+ "trades": 16,
+ "open": 3
 }
